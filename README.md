@@ -4,8 +4,7 @@ Package for common satellite systems to be used across multiple projects.
 ## Setup 
 ```
 cd satellite-systems/
-pip3 install --user .
-
+pip install -e .
 ```
 
 Ensure all your path variables are set on your computer. You may need to include the following paths in your environment variables: 
@@ -14,7 +13,6 @@ Ensure all your path variables are set on your computer. You may need to include
 
 ## Application
 You can use this as a package in a seperate python project, or you can have access to each of the satellite systems seperately through a Command Line Interface (CLI). 
-
 
 ## RADIO
 An example import into a python project is given below: 
