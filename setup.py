@@ -29,6 +29,7 @@ setuptools.setup(
         'console_scripts':
             [
                 'radio = radio.radio:main',
+                'gps = gps.gps:main',
             ],
     },
 )
