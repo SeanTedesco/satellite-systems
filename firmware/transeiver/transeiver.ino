@@ -4,15 +4,18 @@
 
 #define CE_PIN 9
 #define CSN_PIN 10
-#define PACK_SIZE 13
-#define BUF_SIZE 26
 
-const byte numChars = 64;
-char receivedChars[numChars];
+const int max_payload_length = 32;
+char char_buffer[max_payload_length];
 
-boolean newData = false;
+// global flag to control flow of data from serial port
+bool request_to_send = false;   // true = has data, false = no data
 
-byte ledPin = 13; // the onboard LED
+// global flag to control flow of data to serial port
+bool clear_to_send = false;   // true = send it, false = no send
+
+// Used to control whether this node is sending or receiving
+bool role = false;  // true = TX role, false = RX role
 
 const byte slaveAddress[6] = {'RxAAA'}; //must be the same on the receiver
 
@@ -37,21 +40,21 @@ void setup()
     radio.openWritingPipe(slaveAddress);
     radio.stopListening();
 
-    Serial.println("<Arduino is ready>");
+    Serial.println("<ready>");
 }
 
 //===============
 
 void loop()
 {
-    recvWithStartEndMarkers();
-    replyToPython();
-    sendToReceiver();
+    // receive data from serial interface
+    // transmit data to transceiver
+    // receive data from transceiver
 }
 
 //===============
 
-void recvWithStartEndMarkers()
+void receive_from_serial()
 {
     static boolean recvInProgress = false;
     static byte ndx = 0;
@@ -59,7 +62,7 @@ void recvWithStartEndMarkers()
     char endMarker = '>';
     char rc;
 
-    while (Serial.available() > 0 && newData == false)
+    while (Serial.available() > 0 && new_data == false)
     {
         rc = Serial.read();
 
@@ -67,7 +70,7 @@ void recvWithStartEndMarkers()
         {
             if (rc != endMarker)
             {
-                receivedChars[ndx] = rc;
+                char_buffer[ndx] = rc;
                 ndx++;
                 if (ndx >= numChars)
                 {
@@ -76,10 +79,10 @@ void recvWithStartEndMarkers()
             }
             else
             {
-                receivedChars[ndx] = '\0'; // terminate the string
+                char_buffer[ndx] = '\0'; // terminate the string
                 recvInProgress = false;
                 ndx = 0;
-                newData = true;
+                new_data = true;
             }
         }
 
@@ -92,41 +95,33 @@ void recvWithStartEndMarkers()
 
 //===============
 
-void replyToPython()
+void send_to_serial()
 {
-    if (newData == true)
+    if (clear_to_send == true)
     {
-        Serial.print("<This just in ... ");
-        Serial.print(receivedChars);
-        Serial.print("   ");
-        Serial.print(millis());
+        Serial.print('<');
+        Serial.print(char_buffer);
         Serial.print('>');
         // change the state of the LED everytime a reply is sent
         digitalWrite(ledPin, !digitalRead(ledPin));
-        //newData = false;
+        //new_data = false;
     }
 }
 
 //===============
 
-void sendToReceiver()
+void send_to_radio()
 {
-    if (newData == true)
-    {
-        bool rslt;
+    unsigned char rc;
 
-        rslt = radio.write(&receivedChars, sizeof(receivedChars));
+    if (request_to_send == false) {
+        rc = -1;
+    } 
 
-        Serial.print("Data Sent ");
-        Serial.print(receivedChars);
-        if (rslt)
-        {
-            Serial.println("  Acknowledge received");
-            newData = false;
-        }
-        else
-        {
-            Serial.println("  Tx failed");
-        }
-    }
+    rc = radio.write(&char_buffer, sizeof(char_buffer));
+
+    request_to_send = false;
+
+    return rc;    
+    
 }
