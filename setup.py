@@ -19,6 +19,7 @@ setuptools.setup(
     packages=setuptools.find_packages('src'),
     install_requires=[
         'pyserial',
+        'argparse',
     ],
     classifiers=[
         'Programming Language :: Python :: 3',
