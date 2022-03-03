@@ -18,13 +18,28 @@ You can use this as a package in a seperate python project, or you can have acce
 An example import into a python project is given below: 
 
 ```
-from satsystems import radio
+from satsystems.radio.rf24 import RF24
 
-comms = radio.open_resource('arduino-radio-1')
+comms = RF24(uid='transmitter-1', port='/dev/ttyUSB0', baudrate=115200)
 comms.receive()
 ```
 And an example of the CLI is given below: 
 
 ```
 radio --port '/dev/ttyUSB0' send 'importantdatatosend'
+```
+
+## GPS
+An example import into a python project is given below: 
+
+```
+from satsystems.gps.grove import Grove
+
+grove_gps = Grove(uid='gps-2', port='/dev/ttyUSB1', baudrate=115200)
+
+```
+And an example of the CLI is given below: 
+
+```
+gps --port '/dev/ttyUSB0' get
 ```

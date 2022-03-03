@@ -13,11 +13,11 @@ def parse_cmdline():
     pass
 
 def main():
-    from grove import Grove
+    from .grove import Grove
 
     #options = parse_cmdline()
     gps = Grove(uid='radio_uid', port='/dev/ttyUSB2', baudrate=115200)
-
+    gps.get_location()
     #options.functions(options, gps)
 
 if __name__ == '__main__':

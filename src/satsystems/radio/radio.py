@@ -32,7 +32,7 @@ def main():
 
     #options = parse_cmdline()
     radio = RF24(uid='radio_uid', port='/dev/ttyUSB2', baudrate=115200)
-
+    radio.send()
     #options.functions(options, radio)
 
 if __name__ == '__main__':

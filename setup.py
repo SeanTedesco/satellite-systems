@@ -28,8 +28,8 @@ setuptools.setup(
     entry_points={
         'console_scripts':
             [
-                'radio = radio.radio:main',
-                'gps = gps.gps:main',
+                'radio = satsystems.radio.radio:main',
+                'gps = satsystems.gps.gps:main',
             ],
     },
 )
