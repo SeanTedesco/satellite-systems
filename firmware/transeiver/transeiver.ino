@@ -12,13 +12,16 @@ const int max_buffer_length = 512;
 char serial_buffer[max_buffer_length];
 
 // global flag to control flow of data from radio
-bool new_data = false;   // true = has data, false = no data
+bool new_payload = false;       // true = received payload data, false = no new payload data
+
+// global flag to control flow of data to radio
+bool clear_for_radio = false;   // true = transmit payload data, false = no payload data to transmit
 
 // global flag to control flow of data from serial port
-bool clear_to_send = false;   // true = send it, false = no send
+bool new_serial = false;        // true = received serial data, false = no new serial data
 
-// Used to control whether this node is sending or receiving
-bool role = false;  // true = TX role, false = RX role
+//global flag to control flow of data to serial port
+bool clear_for_serial = false;  // true = send data to serial port, false = no serial data to send 
 
 // used to control the action that the transeiver will perform
 char mode; // T=transmit, R=receive, S=stream
@@ -95,7 +98,7 @@ void receive_from_serial()
     char endMarker = '>';
     char rc;
 
-    while (Serial.available() > 0 && clear_to_send == false)
+    while (Serial.available() > 0 && new_serial == false)
     {
         rc = Serial.read();
 
@@ -115,7 +118,7 @@ void receive_from_serial()
                 serial_buffer[ndx] = '\0'; // terminate the string
                 recvInProgress = false;
                 ndx = 0;
-                clear_to_send = true;
+                new_serial = true;
             }
         }
 
@@ -130,12 +133,19 @@ void receive_from_serial()
 
 void send_to_serial()
 {
-    Serial.print('<');
-    Serial.print(serial_buffer);
-    Serial.print('>');
-    // change the state of the LED everytime a reply is sent
-    digitalWrite(ledPin, !digitalRead(ledPin));
-    clear_to_send = false;
+    unsigned char rc = 0;
+
+    if (clear_for_serial){
+        Serial.print('<');
+        Serial.print(serial_buffer);
+        Serial.print('>');
+        // change the state of the LED everytime a reply is sent
+        digitalWrite(ledPin, !digitalRead(ledPin));
+        new_serial = false;
+    } else {
+        rc = -1;
+    } 
+
 }
 
 //===============
@@ -146,6 +156,7 @@ void send_to_radio()
 
     if (clear_to_send == false) {
         rc = -1;
+        return rc;
     } 
 
     rc = radio.write(&payload_buffer, sizeof(payload_buffer));
@@ -162,14 +173,14 @@ void receive_from_radio()
 {
     unsigned char rc;
 
-    if (new_data == true) {
+    if (new_payload == true) {
         rc = -1;
         return rc;
     }
 
     rc = radio.read(&payload_buffer, sizeof(payload_buffer));
 
-    new_data = false;
+    new_payload = true;
 
     return rc;
 }
