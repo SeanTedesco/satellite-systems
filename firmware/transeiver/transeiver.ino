@@ -1,23 +1,29 @@
 #include <SPI.h>
-#include <nRF24L01.h>
-#include <RF24.h>
+#include "printf.h"
+#include "RF24.h"
 
 #define CE_PIN 9
 #define CSN_PIN 10
 
 const int max_payload_length = 32;
-char char_buffer[max_payload_length];
+char payload_buffer[max_payload_length];
+
+const int max_buffer_length = 512;
+char serial_buffer[max_buffer_length];
+
+// global flag to control flow of data from radio
+bool new_data = false;   // true = has data, false = no data
 
 // global flag to control flow of data from serial port
-bool request_to_send = false;   // true = has data, false = no data
-
-// global flag to control flow of data to serial port
 bool clear_to_send = false;   // true = send it, false = no send
 
 // Used to control whether this node is sending or receiving
 bool role = false;  // true = TX role, false = RX role
 
-const byte slaveAddress[6] = {'RxAAA'}; //must be the same on the receiver
+// used to control the action that the transeiver will perform
+char mode; // T=transmit, R=receive, S=stream
+
+const byte slaveAddress[6] = {'RxTxA'}; //must be the same on the receiver
 
 RF24 radio(CE_PIN, CSN_PIN); // Create a Radio
 
@@ -47,9 +53,36 @@ void setup()
 
 void loop()
 {
-    // receive data from serial interface
-    // transmit data to transceiver
-    // receive data from transceiver
+    if (Serial.available()) {
+    // change the role via the serial input
+
+        mode = receive_from_serial();
+        if (!strcmp("<T>", mode) && !role) {
+            // transmit data
+            role = true;
+            Serial.println(F("<ready>"));
+            radio.stopListening();
+            do_transmit();
+
+        } else if (!strcmp("<R>", mode) && role) {
+            // receive data
+            role = false;
+            Serial.println(F("<ready>"));
+            radio.startListening();
+            do_receive();
+
+        } else if (!strcmp("<S>", mode) && !role){
+            // stream data
+            role = true;
+            Serial.println(F("<ready>"));
+            radio.stopListening();
+            do_stream();
+        } else {
+            // listen for radio reception
+            role = false
+            radio.startListening();
+        }
+    }
 }
 
 //===============
@@ -62,7 +95,7 @@ void receive_from_serial()
     char endMarker = '>';
     char rc;
 
-    while (Serial.available() > 0 && new_data == false)
+    while (Serial.available() > 0 && clear_to_send == false)
     {
         rc = Serial.read();
 
@@ -70,19 +103,19 @@ void receive_from_serial()
         {
             if (rc != endMarker)
             {
-                char_buffer[ndx] = rc;
+                serial_buffer[ndx] = rc;
                 ndx++;
-                if (ndx >= numChars)
+                if (ndx >= max_buffer_length)
                 {
-                    ndx = numChars - 1;
+                    ndx = max_buffer_length - 1;
                 }
             }
             else
             {
-                char_buffer[ndx] = '\0'; // terminate the string
+                serial_buffer[ndx] = '\0'; // terminate the string
                 recvInProgress = false;
                 ndx = 0;
-                new_data = true;
+                clear_to_send = true;
             }
         }
 
@@ -97,15 +130,12 @@ void receive_from_serial()
 
 void send_to_serial()
 {
-    if (clear_to_send == true)
-    {
-        Serial.print('<');
-        Serial.print(char_buffer);
-        Serial.print('>');
-        // change the state of the LED everytime a reply is sent
-        digitalWrite(ledPin, !digitalRead(ledPin));
-        //new_data = false;
-    }
+    Serial.print('<');
+    Serial.print(serial_buffer);
+    Serial.print('>');
+    // change the state of the LED everytime a reply is sent
+    digitalWrite(ledPin, !digitalRead(ledPin));
+    clear_to_send = false;
 }
 
 //===============
@@ -114,14 +144,50 @@ void send_to_radio()
 {
     unsigned char rc;
 
-    if (request_to_send == false) {
+    if (clear_to_send == false) {
         rc = -1;
     } 
 
-    rc = radio.write(&char_buffer, sizeof(char_buffer));
+    rc = radio.write(&payload_buffer, sizeof(payload_buffer));
 
-    request_to_send = false;
+    clear_to_send = false;
 
     return rc;    
     
+}
+
+//===============
+
+void receive_from_radio()
+{
+    unsigned char rc;
+
+    if (new_data == true) {
+        rc = -1;
+        return rc;
+    }
+
+    rc = radio.read(&payload_buffer, sizeof(payload_buffer));
+
+    new_data = false;
+
+    return rc;
+}
+
+void do_transmit()
+{
+    unsigned char rc = 0;
+    return rc;
+}
+
+void do_receive()
+{
+    unsigned char rc = 0;
+    return rc;
+}
+
+void do_stream()
+{
+    unsigned char rc = 0;
+    return rc;
 }
