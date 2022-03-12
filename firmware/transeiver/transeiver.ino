@@ -1,91 +1,123 @@
+/******************************************************************************************************
+ * INCLUDES
+ */
 #include <SPI.h>
 #include "printf.h"
 #include "RF24.h"
 
+/******************************************************************************************************
+ * HARDWARE CONFIGURATION
+ */
 #define CE_PIN 9
 #define CSN_PIN 10
+#define uid 1
 
-const int max_payload_length = 32;
-char payload_buffer[max_payload_length];
-
-const int max_buffer_length = 512;
-char serial_buffer[max_buffer_length];
-
+/******************************************************************************************************
+ * CONTROL FLAGS
+ */
 // global flag to control flow of data from radio
-bool new_payload = false;       // true = received payload data, false = no new payload data
+// true = received payload data, false = no new payload data
+bool new_payload = false;
 
 // global flag to control flow of data to radio
-bool clear_for_radio = false;   // true = transmit payload data, false = no payload data to transmit
+// true = transmit payload data, false = no payload data to transmit
+bool clear_for_radio = false;
 
 // global flag to control flow of data from serial port
-bool new_serial = false;        // true = received serial data, false = no new serial data
+// true = received serial data, false = no new serial data
+bool new_serial = false;
 
 //global flag to control flow of data to serial port
-bool clear_for_serial = false;  // true = send data to serial port, false = no serial data to send 
+// true = send data to serial port, false = no serial data to send
+bool clear_for_serial = false;
 
 // used to control the action that the transeiver will perform
-char mode; // T=transmit, R=receive, S=stream
+// T=transmit, R=receive, S=stream, X=defualt
+char mode = 'X';
 
-const byte slaveAddress[6] = {'RxTxA'}; //must be the same on the receiver
+/******************************************************************************************************
+ * GLOBAL DATA BUFFERS
+ */
+const uint16_t max_payload_length = 32;
+char payload_buffer[max_payload_length];
 
+const uint16_t max_buffer_length = 512;
+char serial_buffer[max_buffer_length];
+
+char temp_payload = 'a';
+
+/******************************************************************************************************
+ * RADIO PARAMETERS
+ */
+// Let these addresses be used for the pair
+uint8_t address[][6] = {"1Node", "2Node"};
+
+// instantiate an object for the nRF24L01 transceiver
 RF24 radio(CE_PIN, CSN_PIN); // Create a Radio
 
-//===============
+/******************************************************************************************************
+ * ARDUINO SETUP
+ */
+void setup(){
+  Serial.begin(115200);
+  while (!Serial) {
+  // some boards need to wait to ensure access to serial over USB
+  }
+  
+  // initialize the transceiver on the SPI bus
+  if (!radio.begin()) {
+    Serial.println(F("<error>"));
+    Serial.println(F("<hardware not responding>"));
+    while (1) {} // hold in infinite loop
+  }
 
-void setup()
-{
-    Serial.begin(115200);
+  radio.setDataRate(RF24_250KBPS);
+  radio.setPALevel(RF24_PA_LOW);
+  radio.openWritingPipe(address[uid]);
+  radio.openReadingPipe(1, address[!uid]);
+  radio.stopListening();
 
-    pinMode(ledPin, OUTPUT);
-    digitalWrite(ledPin, HIGH);
-    delay(200);
-    digitalWrite(ledPin, LOW);
-    delay(200);
-    digitalWrite(ledPin, HIGH);
+  if (uid) {
+    radio.stopListening();  // put radio in TX mode
+  } else {
+    radio.startListening(); // put radio in RX mode
+  }
 
-    radio.begin();
-    radio.setDataRate(RF24_250KBPS);
-    radio.setRetries(3, 5); // delay, count
-    radio.openWritingPipe(slaveAddress);
-    radio.stopListening();
+  pinMode(LED_BUILTIN, OUTPUT);
+  Serial.println("<ready>");
+} 
 
-    Serial.println("<ready>");
-}
-
-//===============
-
-void loop()
-{
-    if (Serial.available()) {
+/******************************************************************************************************
+ * ARDUINO LOOP
+ */
+void loop(){
+  if (Serial.available()) {
     // change the role via the serial input
+    mode = toupper(Serial.read());
+    if (mode == 'T'){
+      // transmit data
+      Serial.println(F("<ready>"));
+      radio.stopListening();
+      do_transmit();
 
-        mode = receive_from_serial();
-        if (!strcmp("<T>", mode) && !role) {
-            // transmit data
-            role = true;
-            Serial.println(F("<ready>"));
-            radio.stopListening();
-            do_transmit();
+    } else if (mode == 'R' ){
+      // receive data
+      Serial.println(F("<ready>"));
+      radio.startListening();
+      do_receive();
 
-        } else if (!strcmp("<R>", mode) && role) {
-            // receive data
-            role = false;
-            Serial.println(F("<ready>"));
-            radio.startListening();
-            do_receive();
-
-        } else if (!strcmp("<S>", mode) && !role){
-            // stream data
-            role = true;
-            Serial.println(F("<ready>"));
-            radio.stopListening();
-            do_stream();
-        } else {
-            // listen for radio reception
-            role = false
-            radio.startListening();
-        }
+    } else if (mode == 'S'){
+      // stream data
+      Serial.println(F("<ready>"));
+      radio.stopListening();
+      do_stream();
+    } else {
+      // listen for radio reception
+      radio.startListening();
     }
+  }
+  delay(100);
+  digitalWrite(LED_BUILTIN, !digitalRead(LED_BUILTIN));
 }
 
 //===============
@@ -131,74 +163,72 @@ void receive_from_serial()
 
 //===============
 
-void send_to_serial()
-{
-    unsigned char rc = 0;
-
-    if (clear_for_serial){
-        Serial.print('<');
-        Serial.print(serial_buffer);
-        Serial.print('>');
-        // change the state of the LED everytime a reply is sent
-        digitalWrite(ledPin, !digitalRead(ledPin));
-        new_serial = false;
-    } else {
-        rc = -1;
-    } 
-
+bool send_to_serial(){
+  bool rc = false;
+  if (clear_for_serial){
+    Serial.print('<');
+    Serial.print(serial_buffer);
+    Serial.print('>');
+    new_serial = false;
+    rc = true;
+  }
+  return rc;
 }
 
 //===============
 
-void send_to_radio()
-{
-    unsigned char rc;
-
-    if (clear_to_send == false) {
-        rc = -1;
-        return rc;
-    } 
-
-    rc = radio.write(&payload_buffer, sizeof(payload_buffer));
-
-    clear_to_send = false;
-
-    return rc;    
-    
+bool send_to_radio(){
+  bool rc = false;
+  if (clear_for_radio == false) {
+    return rc;
+  } 
+  rc = radio.write(&payload_buffer, sizeof(payload_buffer));
+  clear_for_radio = false;
+  return rc;
 }
 
 //===============
 
-void receive_from_radio()
-{
-    unsigned char rc;
-
-    if (new_payload == true) {
-        rc = -1;
-        return rc;
-    }
-
-    rc = radio.read(&payload_buffer, sizeof(payload_buffer));
-
-    new_payload = true;
-
+bool receive_from_radio(){
+  bool rc = false;
+  if (new_payload == true){
     return rc;
+  }
+  radio.read(&payload_buffer, sizeof(payload_buffer));
+  new_payload = true;
+  rc = true;
+  return rc;
 }
 
-void do_transmit()
-{
-    unsigned char rc = 0;
-    return rc;
+bool do_transmit(){
+  bool rc = false; 
+  while (!Serial.available()) {
+    // wait for user input
+  }
+  temp_payload = Serial.read();
+  rc = radio.write(&temp_payload, sizeof(temp_payload));
+  return rc;
 }
 
-void do_receive()
-{
-    unsigned char rc = 0;
-    return rc;
+bool do_receive(){
+  bool rc = false; 
+  uint8_t pipe;
+  if (radio.available(&pipe)){
+    uint8_t bytes = radio.getPayloadSize();
+    radio.read(&temp_payload, bytes);
+
+    Serial.print(F("Received "));
+    Serial.print(bytes);                    // print the size of the payload
+    Serial.print(F(" bytes on pipe "));
+    Serial.print(pipe);                     // print the pipe number
+    Serial.print(F(": "));
+    Serial.println(temp_payload);                // print the payload's value
+  }
+  return rc;
 }
 
-void do_stream()
+bool do_stream()
 {
-    unsigned char rc = 0;
+    bool rc = false;
     return rc;
 }
