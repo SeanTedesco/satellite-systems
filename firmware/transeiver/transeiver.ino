@@ -10,7 +10,6 @@
  */
 #define CE_PIN 9
 #define CSN_PIN 10
-#define uid 1
 
 /******************************************************************************************************
  * CONTROL FLAGS
@@ -44,7 +43,8 @@ char payload_buffer[max_payload_length];
 const uint16_t max_buffer_length = 512;
 char serial_buffer[max_buffer_length];
 
-char temp_payload = 'a';
+char payload = 'a';
+bool radioNumber = 1;
 
 /******************************************************************************************************
  * RADIO PARAMETERS
@@ -73,17 +73,15 @@ void setup(){
 
   radio.setDataRate(RF24_250KBPS);
   radio.setPALevel(RF24_PA_LOW);
-  radio.openWritingPipe(address[uid]);
-  radio.openReadingPipe(1, address[!uid]);
+  radio.openWritingPipe(address[radioNumber]);
+  radio.openReadingPipe(1, address[!radioNumber]);
   radio.stopListening();
 
-  if (uid) {
+  if (radioNumber) {
     radio.stopListening();  // put radio in TX mode
   } else {
     radio.startListening(); // put radio in RX mode
   }
-
-  pinMode(LED_BUILTIN, OUTPUT);
   Serial.println("<ready>");
 } 
 
@@ -96,19 +94,19 @@ void loop(){
     mode = toupper(Serial.read());
     if (mode == 'T'){
       // transmit data
-      Serial.println(F("<ready>"));
+      Serial.println(F("<ready transmit>"));
       radio.stopListening();
       do_transmit();
 
     } else if (mode == 'R' ){
       // receive data
-      Serial.println(F("<ready>"));
+      Serial.println(F("<ready receive>"));
       radio.startListening();
       do_receive();
 
     } else if (mode == 'S'){
       // stream data
-      Serial.println(F("<ready>"));
+      Serial.println(F("<ready stream>"));
       radio.stopListening();
       do_stream();
     } else {
@@ -116,8 +114,8 @@ void loop(){
       radio.startListening();
     }
   }
+  Serial.println('.');
   delay(100);
-  digitalWrite(LED_BUILTIN, !digitalRead(LED_BUILTIN));
 }
 
 //===============
@@ -201,28 +199,33 @@ bool receive_from_radio(){
 }
 
 bool do_transmit(){
-  bool rc = false; 
-  while (!Serial.available()) {
-    // wait for user input
-  }
-  temp_payload = Serial.read();
-  rc = radio.write(&temp_payload, sizeof(temp_payload));
+  bool rc = false;
+  while(Serial.available()){Serial.read();}
+  while(!Serial.available()){}
+  payload = Serial.read();
+  Serial.print("<sending: ");
+  Serial.print(payload);
+  Serial.println("> ");
+  rc = radio.write(&payload, sizeof(payload));
   return rc;
 }
 
 bool do_receive(){
   bool rc = false; 
   uint8_t pipe;
-  if (radio.available(&pipe)){
-    uint8_t bytes = radio.getPayloadSize();
-    radio.read(&temp_payload, bytes);
-
-    Serial.print(F("Received "));
-    Serial.print(bytes);                    // print the size of the payload
-    Serial.print(F(" bytes on pipe "));
-    Serial.print(pipe);                     // print the pipe number
-    Serial.print(F(": "));
-    Serial.println(temp_payload);                // print the payload's value
+  Serial.println("Press 'q' to quit");
+  while (Serial.read() != 'q'){
+    if (radio.available(&pipe)) {
+      uint8_t bytes = radio.getPayloadSize();
+      radio.read(&payload, bytes);
+  
+      Serial.print(F("Received "));
+      Serial.print(bytes);                    // print the size of the payload
+      Serial.print(F(" bytes on pipe "));
+      Serial.print(pipe);                     // print the pipe number
+      Serial.print(F(": "));
+      Serial.println(payload);                // print the payload's value
+    }
   }
   return rc;
 }
