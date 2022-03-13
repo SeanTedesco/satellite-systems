@@ -43,7 +43,7 @@ char payload_buffer[max_payload_length];
 const uint16_t max_buffer_length = 512;
 char serial_buffer[max_buffer_length];
 
-char payload = 'a';
+float payload = 0.0;
 bool radioNumber = 1;
 
 /******************************************************************************************************
@@ -82,7 +82,8 @@ void setup(){
   } else {
     radio.startListening(); // put radio in RX mode
   }
-  Serial.println("<ready>");
+  Serial.println("<setup ready>");
+  Serial.println("Press 'T' to transmit, 'R' to receive");
 } 
 
 /******************************************************************************************************
@@ -114,7 +115,6 @@ void loop(){
       radio.startListening();
     }
   }
-  Serial.println('.');
   delay(100);
 }
 
@@ -200,13 +200,14 @@ bool receive_from_radio(){
 
 bool do_transmit(){
   bool rc = false;
-  while(Serial.available()){Serial.read();}
-  while(!Serial.available()){}
-  payload = Serial.read();
+  //while(Serial.available()){Serial.read();}
+  //while(!Serial.available()){}
+  //payload = Serial.read();
   Serial.print("<sending: ");
   Serial.print(payload);
   Serial.println("> ");
   rc = radio.write(&payload, sizeof(payload));
+  payload += 0.1; 
   return rc;
 }
 
@@ -218,7 +219,6 @@ bool do_receive(){
     if (radio.available(&pipe)) {
       uint8_t bytes = radio.getPayloadSize();
       radio.read(&payload, bytes);
-  
       Serial.print(F("Received "));
       Serial.print(bytes);                    // print the size of the payload
       Serial.print(F(" bytes on pipe "));
