@@ -1,3 +1,9 @@
+/*
+ * Description: Firmware for serial controlled radio module. Used to send data to a sibling
+ * radio. Default state is receiving, and can be manually controlled to transmit or stream data. 
+ * 
+ * Author: Sean Tedesco
+ */
 /******************************************************************************************************
  * INCLUDES
  */
@@ -10,6 +16,9 @@
  */
 #define CE_PIN 9
 #define CSN_PIN 10
+
+bool radioNumber = 1;
+bool role = false;  // true = TX role, false = RX role
 
 /******************************************************************************************************
  * CONTROL FLAGS
@@ -31,8 +40,8 @@ bool new_serial = false;
 bool clear_for_serial = false;
 
 // used to control the action that the transeiver will perform
-// T=transmit, R=receive, S=stream, X=defualt
-char mode = 'X';
+// T=transmit, R=receive, S=stream
+char mode = 'R';
 
 /******************************************************************************************************
  * GLOBAL DATA BUFFERS
@@ -40,11 +49,8 @@ char mode = 'X';
 const uint16_t max_payload_length = 32;
 char payload_buffer[max_payload_length];
 
-const uint16_t max_buffer_length = 512;
+const uint16_t max_buffer_length = 256;
 char serial_buffer[max_buffer_length];
-
-float payload = 0.0;
-bool radioNumber = 1;
 
 /******************************************************************************************************
  * RADIO PARAMETERS
@@ -55,183 +61,187 @@ uint8_t address[][6] = {"1Node", "2Node"};
 // instantiate an object for the nRF24L01 transceiver
 RF24 radio(CE_PIN, CSN_PIN); // Create a Radio
 
+float payload = 0.0;
+
+/******************************************************************************************************
+ * FUNCTION PROTOTYPES
+ */
+void init_serial(void);
+void init_radio(void);
+void get_radio_number(void);
+void read_from_serial(void);
+void do_transmit(void);
+void do_receive(void);
+char get_mode(void);
+void print_serial_buffer(void);
+
 /******************************************************************************************************
  * ARDUINO SETUP
  */
-void setup(){
-  Serial.begin(115200);
-  while (!Serial) {
-  // some boards need to wait to ensure access to serial over USB
-  }
-  
-  // initialize the transceiver on the SPI bus
-  if (!radio.begin()) {
-    Serial.println(F("<error>"));
-    Serial.println(F("<hardware not responding>"));
-    while (1) {} // hold in infinite loop
-  }
-
-  radio.setDataRate(RF24_250KBPS);
-  radio.setPALevel(RF24_PA_LOW);
-  radio.openWritingPipe(address[radioNumber]);
-  radio.openReadingPipe(1, address[!radioNumber]);
-  radio.stopListening();
-
-  if (radioNumber) {
-    radio.stopListening();  // put radio in TX mode
-  } else {
-    radio.startListening(); // put radio in RX mode
-  }
-  Serial.println("<setup ready>");
-  Serial.println("Press 'T' to transmit, 'R' to receive");
-} 
+void setup() {
+  init_serial();
+  get_radio_number();
+  init_radio();
+  Serial.println(F("<press 'T' to begin transmitting to the other node>"));
+}
 
 /******************************************************************************************************
  * ARDUINO LOOP
  */
-void loop(){
-  if (Serial.available()) {
-    // change the role via the serial input
-    mode = toupper(Serial.read());
-    if (mode == 'T'){
-      // transmit data
-      Serial.println(F("<ready transmit>"));
-      radio.stopListening();
-      do_transmit();
+void loop() {
+  char mode = get_mode(); 
 
-    } else if (mode == 'R' ){
-      // receive data
-      Serial.println(F("<ready receive>"));
-      radio.startListening();
-      do_receive();
-
-    } else if (mode == 'S'){
-      // stream data
-      Serial.println(F("<ready stream>"));
-      radio.stopListening();
-      do_stream();
-    } else {
-      // listen for radio reception
-      radio.startListening();
-    }
+  if (mode == 'T' && !role){
+    role = true;
+    Serial.println(F("*** CHANGING TO TRANSMIT ROLE -- PRESS 'R' TO SWITCH BACK"));
+    radio.stopListening();
+    do_transmit();
+  } else if (mode == 'R' && role){
+    role = false;
+    Serial.println(F("*** CHANGING TO RECEIVE ROLE -- PRESS 'T' TO SWITCH BACK"));
+    radio.startListening();
+    do_receive();
   }
-  delay(100);
 }
 
-//===============
-
-void receive_from_serial()
-{
-    static boolean recvInProgress = false;
-    static byte ndx = 0;
-    char startMarker = '<';
-    char endMarker = '>';
-    char rc;
-
-    while (Serial.available() > 0 && new_serial == false)
-    {
-        rc = Serial.read();
-
-        if (recvInProgress == true)
-        {
-            if (rc != endMarker)
-            {
-                serial_buffer[ndx] = rc;
-                ndx++;
-                if (ndx >= max_buffer_length)
-                {
-                    ndx = max_buffer_length - 1;
-                }
-            }
-            else
-            {
-                serial_buffer[ndx] = '\0'; // terminate the string
-                recvInProgress = false;
-                ndx = 0;
-                new_serial = true;
-            }
-        }
-
-        else if (rc == startMarker)
-        {
-            recvInProgress = true;
-        }
-    }
-}
-
-//===============
-
-bool send_to_serial(){
-  bool rc = false;
-  if (clear_for_serial){
-    Serial.print('<');
-    Serial.print(serial_buffer);
-    Serial.print('>');
-    new_serial = false;
-    rc = true;
+/******************************************************************************************************
+ * INIT_SERIAL
+ */
+void init_serial(){
+  Serial.begin(115200);
+  while (!Serial) {
+    // some boards need to wait to ensure access to serial over USB
   }
-  return rc;
+  Serial.println(F("<ready: serial>"));
 }
 
-//===============
-
-bool send_to_radio(){
-  bool rc = false;
-  if (clear_for_radio == false) {
-    return rc;
-  } 
-  rc = radio.write(&payload_buffer, sizeof(payload_buffer));
-  clear_for_radio = false;
-  return rc;
-}
-
-//===============
-
-bool receive_from_radio(){
-  bool rc = false;
-  if (new_payload == true){
-    return rc;
+/******************************************************************************************************
+ * INIT_RADIO
+ */
+void init_radio(){
+  // initialize the transceiver on the SPI bus
+  if (!radio.begin()) {
+    Serial.println(F("<error: radio hardware is not responding>"));
+    while (1) {} // hold in infinite loop
   }
-  radio.read(&payload_buffer, sizeof(payload_buffer));
-  new_payload = true;
-  rc = true;
-  return rc;
+  radio.setPALevel(RF24_PA_LOW);  // RF24_PA_MAX is default.
+  radio.setPayloadSize(sizeof(payload)); 
+  radio.openWritingPipe(address[radioNumber]);
+  radio.openReadingPipe(1, address[!radioNumber]);
+  if (role) {
+    radio.stopListening();
+  } else {
+    radio.startListening();
+  }
+  Serial.println(F("<ready: radio>"));
 }
 
-bool do_transmit(){
-  bool rc = false;
-  //while(Serial.available()){Serial.read();}
-  //while(!Serial.available()){}
-  //payload = Serial.read();
-  Serial.print("<sending: ");
-  Serial.print(payload);
-  Serial.println("> ");
-  rc = radio.write(&payload, sizeof(payload));
-  payload += 0.1; 
-  return rc;
+/******************************************************************************************************
+ * GET_RADIO_NUMBER
+ */
+void get_radio_number(){
+  Serial.println(F("<enter radio number: '0' or '1'. Defaults to '0'>"));
+  while (!Serial.available()) {
+    // wait for user input
+  }
+  char input = Serial.parseInt();
+  radioNumber = input == 1;
+  Serial.print(F("<radioNumber = "));
+  Serial.print((int)radioNumber);
+  Serial.println(F(">"));
 }
 
-bool do_receive(){
-  bool rc = false; 
+/******************************************************************************************************
+ * DO_TRANSMIT
+ */
+void do_transmit() {
+  unsigned long start_timer = micros();
+  bool report = radio.write(&payload, sizeof(float));
+  unsigned long end_timer = micros();
+
+  if (report) {
+    Serial.print(F("<success: transmission successful, "));
+    Serial.print(F("Time to transmit = "));
+    Serial.print(end_timer - start_timer);
+    Serial.print(F(" us. Sent: "));
+    Serial.print(payload);
+    Serial.println(F(">"));
+    payload += 0.01;
+  } else {
+    Serial.println(F("<error: transmission failed or timed out>"));
+  }
+  delay(1000);
+}
+
+/******************************************************************************************************
+ * DO_RECEIVE
+ */
+void do_receive() {
   uint8_t pipe;
-  Serial.println("Press 'q' to quit");
-  while (Serial.read() != 'q'){
-    if (radio.available(&pipe)) {
-      uint8_t bytes = radio.getPayloadSize();
-      radio.read(&payload, bytes);
-      Serial.print(F("Received "));
-      Serial.print(bytes);                    // print the size of the payload
-      Serial.print(F(" bytes on pipe "));
-      Serial.print(pipe);                     // print the pipe number
-      Serial.print(F(": "));
-      Serial.println(payload);                // print the payload's value
+  if (radio.available(&pipe)){
+    uint8_t bytes = radio.getPayloadSize();
+    radio.read(&payload, bytes);
+    Serial.print(F("Received "));
+    Serial.print(bytes);
+    Serial.print(F(" bytes on pipe "));
+    Serial.print(pipe);
+    Serial.print(F(": "));
+    Serial.println(payload);
+  }
+}
+
+/******************************************************************************************************
+ * READ_FROM_SERIAL
+ */
+char get_mode(){
+  char rc = 'R';
+  if (Serial.available()) {
+    receive_from_serial();
+    if (new_serial){
+      rc = toupper(serial_buffer[0]);
+      new_serial = false;
     }
   }
   return rc;
 }
 
-bool do_stream()
-{
-    bool rc = false;
-    return rc;
+/******************************************************************************************************
+ * RECEIVE_FROM_SERIAL
+ */
+void receive_from_serial(){
+  static bool recvInProgress = false;
+  static byte ndx = 0;
+  char startMarker = '<';
+  char endMarker = '>';
+  char rc;
+
+  while (Serial.available() > 0 && new_serial == false){
+    rc = Serial.read();
+    if (recvInProgress == true){
+      if (rc != endMarker){
+        serial_buffer[ndx] = rc;
+        ndx++;
+        if (ndx >= max_buffer_length){
+          ndx = max_buffer_length - 1;
+        }
+      } else{
+        serial_buffer[ndx] = '\0';
+        recvInProgress = false;
+        ndx = 0;
+        new_serial = true;
+        //print_serial_buffer();
+      }
+    }else if (rc == startMarker){
+      recvInProgress = true;
+    }
+  }
+}
+
+/******************************************************************************************************
+ * PRINT_SERIAL_BUFFER
+ */
+void print_serial_buffer(){
+  Serial.print(F("<serial buffer: "));
+  Serial.print(serial_buffer);
+  Serial.println(F(">"));
 }
