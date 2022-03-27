@@ -18,7 +18,6 @@
 #define CSN_PIN 10
 
 bool radioNumber = 1;
-bool role = false;  // true = TX role, false = RX role
 
 /******************************************************************************************************
  * CONTROL FLAGS
@@ -40,7 +39,7 @@ bool new_serial = false;
 bool clear_for_serial = false;
 
 // used to control the action that the transeiver will perform
-// T=transmit, R=receive, S=stream
+// T=transmit, S=stream, R=receive (default)
 char mode = 'R';
 
 /******************************************************************************************************
@@ -82,23 +81,20 @@ void setup() {
   init_serial();
   get_radio_number();
   init_radio();
-  Serial.println(F("<press 'T' to begin transmitting to the other node>"));
+  Serial.println(F("<enter '<t>' to begin transmitting to the other node>"));
 }
 
 /******************************************************************************************************
  * ARDUINO LOOP
  */
 void loop() {
-  char mode = get_mode(); 
-
-  if (mode == 'T' && !role){
-    role = true;
-    Serial.println(F("*** CHANGING TO TRANSMIT ROLE -- PRESS 'R' TO SWITCH BACK"));
+  mode = get_mode();
+  if (mode == 'T'){
+    Serial.println(F("<changing to transmitter -- enter '<r>' to switch>"));
     radio.stopListening();
     do_transmit();
-  } else if (mode == 'R' && role){
-    role = false;
-    Serial.println(F("*** CHANGING TO RECEIVE ROLE -- PRESS 'T' TO SWITCH BACK"));
+  } else if (mode == 'R'){
+    Serial.println(F("<changing to receiver -- enter '<t>' to switch>"));
     radio.startListening();
     do_receive();
   }
@@ -128,11 +124,7 @@ void init_radio(){
   radio.setPayloadSize(sizeof(payload)); 
   radio.openWritingPipe(address[radioNumber]);
   radio.openReadingPipe(1, address[!radioNumber]);
-  if (role) {
-    radio.stopListening();
-  } else {
-    radio.startListening();
-  }
+  radio.startListening();
   Serial.println(F("<ready: radio>"));
 }
 
@@ -140,16 +132,18 @@ void init_radio(){
  * GET_RADIO_NUMBER
  */
 void get_radio_number(){
-  Serial.println(F("<enter radio number: '0' or '1'. Defaults to '0'>"));
+  char input;
+  Serial.println(F("<enter radio number: '0' or '1'>"));
   while (!Serial.available()) {
-    // wait for user input
+    // wait for user inputs
   }
-  char input = Serial.parseInt();
+  input = Serial.parseInt();
   radioNumber = input == 1;
   Serial.print(F("<radioNumber = "));
   Serial.print((int)radioNumber);
   Serial.println(F(">"));
 }
+
 
 /******************************************************************************************************
  * DO_TRANSMIT
@@ -229,7 +223,7 @@ void receive_from_serial(){
         recvInProgress = false;
         ndx = 0;
         new_serial = true;
-        //print_serial_buffer();
+        print_serial_buffer();
       }
     }else if (rc == startMarker){
       recvInProgress = true;
