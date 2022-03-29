@@ -41,6 +41,10 @@ bool clear_for_serial = false;
 // T=transmit, S=stream, R=receive (default)
 char mode = 'R';
 
+//used to control the number of required transmissions for the radio
+// if greater than 1, stream the data, if 1 transmit the data
+uint32_t num_payloads = 0;
+
 /******************************************************************************************************
  * GLOBAL DATA BUFFERS
  */
@@ -80,6 +84,7 @@ void do_transmit(void);
 void do_receive(void);
 char get_mode(void);
 void print_serial_buffer(void);
+uint32_t get_num_payloads(void);
 
 /******************************************************************************************************
  * ARDUINO SETUP
@@ -283,4 +288,11 @@ void print_serial_buffer(){
   Serial.print(F("<serial buffer: "));
   Serial.print(serial_buffer);
   Serial.println(F(">"));
+}
+
+/******************************************************************************************************
+ * GET_NUM_PAYLOADS
+ */
+uint32_t get_num_payloads(){
+  return 1;
 }
