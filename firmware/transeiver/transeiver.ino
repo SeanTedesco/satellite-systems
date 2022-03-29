@@ -41,7 +41,7 @@ bool clear_for_serial = false;
 // T=transmit, S=stream, R=receive (default)
 char mode = 'R';
 
-//used to control the number of required transmissions for the radio
+// used to control the number of required transmissions for the radio
 // if greater than 1, stream the data, if 1 transmit the data
 uint32_t num_payloads = 0;
 
@@ -68,7 +68,7 @@ RF24 radio(CE_PIN, CSN_PIN); // create a radio
  */
 //float payload = 0.0;
 struct PayloadStruct {
-  char message[29];          // only using 6 characters for TX & ACK payloads
+  char message[29];
   uint8_t counter;
 };
 PayloadStruct payload;
@@ -83,9 +83,10 @@ void init_radio(void);
 void get_radio_number(void);
 void do_transmit(void);
 void do_receive(void);
+void do_stream(void);
 
 void init_payload(void);
-void make_payload(void);
+void make_header(void);
 uint32_t get_num_payloads(void);
 char get_mode(void);
 void print_serial_buffer(void);
@@ -109,12 +110,16 @@ void loop() {
   if (new_serial){
     mode = get_mode();
     num_payloads = get_num_payloads();
-    //make_payload();
+    make_header();
     new_serial = false;
   }
   if (mode == 'T'){
     radio.stopListening();
     do_transmit();
+    mode = 'R';
+  } else if (mode == 'S'){
+    radio.stopListening();
+    do_stream();
     mode = 'R';
   } else if (mode == 'R'){
     radio.startListening();
@@ -123,6 +128,7 @@ void loop() {
     Serial.print(F("<error: unknown mode: "));
     Serial.print(mode);
     Serial.println(F(">"));
+    mode = 'R';
   }
 }
 
@@ -185,40 +191,36 @@ void get_radio_number(){
  * DO_TRANSMIT
  */
 void do_transmit() {
-    unsigned long start_timer = micros();                    // start the timer
-    bool report = radio.write(&payload, sizeof(payload));    // transmit & save the report
-    unsigned long end_timer = micros();                      // end the timer
-
-    if (report) {
-      Serial.print(F("Transmission successful! "));          // payload was delivered
-      Serial.print(F("Time to transmit = "));
-      Serial.print(end_timer - start_timer);                 // print the timer result
-      Serial.print(F(" us. Sent: "));
-      Serial.print(payload.message);                         // print the outgoing message
-      Serial.print(payload.counter);                         // print the outgoing counter
-      uint8_t pipe;
-      if (radio.available(&pipe)) {                          // is there an ACK payload? grab the pipe number that received it
-        PayloadStruct received;
-        radio.read(&received, sizeof(received));             // get incoming ACK payload
-        Serial.print(F(" Recieved "));
-        Serial.print(radio.getDynamicPayloadSize());         // print incoming payload size
-        Serial.print(F(" bytes on pipe "));
-        Serial.print(pipe);                                  // print pipe number that received the ACK
-        Serial.print(F(": "));
-        Serial.print(received.message);                      // print incoming message
-        Serial.println(received.counter);                    // print incoming counter
-
-        // save incoming counter & increment for next outgoing
-        payload.counter = received.counter + 1;
-
-      } else {
-        Serial.println(F(" Recieved: an empty ACK packet")); // empty ACK packet received
-      }
-
-
+  radio.flush_tx();
+  unsigned long start_timer = micros();                    // start the timer
+  bool report = radio.write(&payload, sizeof(payload));    // transmit & save the report
+  unsigned long end_timer = micros();                      // end the timer
+  if (report) {
+    Serial.print(F("Transmission successful! "));          // payload was delivered
+    Serial.print(F("Time to transmit = "));
+    Serial.print(end_timer - start_timer);                 // print the timer result
+    Serial.print(F(" us. Sent: "));
+    Serial.print(payload.message);                         // print the outgoing message
+    Serial.print(payload.counter);                         // print the outgoing counter
+    uint8_t pipe;
+    if (radio.available(&pipe)) {                          // is there an ACK payload? grab the pipe number that received it
+      PayloadStruct received;
+      radio.read(&received, sizeof(received));             // get incoming ACK payload
+      Serial.print(F(" Recieved "));
+      Serial.print(radio.getDynamicPayloadSize());         // print incoming payload size
+      Serial.print(F(" bytes on pipe "));
+      Serial.print(pipe);                                  // print pipe number that received the ACK
+      Serial.print(F(": "));
+      Serial.print(received.message);                      // print incoming message
+      Serial.println(received.counter);                    // print incoming counter
+      // save incoming counter & increment for next outgoing
+      payload.counter = received.counter + 1;
     } else {
-      Serial.println(F("Transmission failed or timed out"));    // payload was not delivered
+      Serial.println(F(" Recieved: an empty ACK packet")); // empty ACK packet received
     }
+  } else {
+    Serial.println(F("Transmission failed or timed out"));    // payload was not delivered
+  }
 
     // to make this example readable in the serial monitor
     delay(1000);  // slow transmissions down by 1 second
@@ -250,6 +252,43 @@ void do_receive() {
       radio.writeAckPayload(1, &payload, sizeof(payload));
     }
   delay(10);
+}
+
+/******************************************************************************************************
+ * DO_STREAM
+ */
+void do_stream(){
+  radio.flush_tx();
+  radio.setPayloadSize(sizeof(payload));
+  uint8_t i = 0;
+  uint8_t failures = 0;
+  unsigned long start_timer = micros();
+  while (i < num_payloads) {
+    while (!new_serial){
+      receive_from_serial();
+    }
+    memcpy(payload.message, serial_buffer, 30);
+    if (!radio.writeFast(&payload, sizeof(payload))) {
+      failures++;
+      radio.reUseTX();
+    } else {
+      i++;
+    }
+    if (failures >= 100) {
+      Serial.print(F("error: too many failures detected. Aborting at payload "));
+      Serial.println(payload.message);
+      break;
+    }
+  }
+  unsigned long end_timer = micros();         // end the timer
+
+  Serial.print(F("Time to transmit = "));
+  Serial.print(end_timer - start_timer);      // print the timer result
+  Serial.print(F(" us with "));
+  Serial.print(failures);                     // print failures detected
+  Serial.println(F(" failures detected"));
+  // to make this example readable in the serial monitor
+  delay(1000);  // slow transmissions down by 1 second
 }
 
 /******************************************************************************************************
@@ -290,7 +329,7 @@ void receive_from_serial(){
           new_serial = true;
           //print_serial_buffer();
         }
-      }else if (rc == startMarker){
+      } else if (rc == startMarker){
         recvInProgress = true;
       }
     }
@@ -309,13 +348,13 @@ void print_serial_buffer(){
  * GET_NUM_PAYLOADS
  */
 uint32_t get_num_payloads(){
-  return 1;
+  return 2;
 }
 
 /******************************************************************************************************
- * MAKE_PAYLOAD
+ * MAKE_HEADER
  */
-void make_payload(){
+void make_header(){
   if (new_serial){
     memcpy(payload.message, serial_buffer, 30);
   }
