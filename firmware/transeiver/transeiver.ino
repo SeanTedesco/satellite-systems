@@ -78,6 +78,7 @@ PayloadStruct payload;
  */
 void init_serial(void);
 void init_radio(void);
+void init_payload(void);
 void get_radio_number(void);
 void read_from_serial(void);
 void do_transmit(void);
@@ -92,10 +93,7 @@ uint32_t get_num_payloads(void);
 void setup() {
   init_serial();
   init_radio();
-
-  memcpy(payload.message, "Hello ", 6);
-  radio.writeAckPayload(1, &payload, sizeof(PayloadStruct));
-  
+  init_payload();
   Serial.println(F("<enter '<t>' to begin transmitting to the other node>"));
 }
 
@@ -144,6 +142,15 @@ void init_radio(){
   radio.openReadingPipe(1, address[!radioNumber]);
   radio.startListening();
   Serial.println(F("<ready: radio>"));
+}
+
+/******************************************************************************************************
+ * INIT_PAYLOAD
+ */
+void init_payload(){
+  payload_buffer[max_payload_length] = 0;
+  memcpy(payload.message, "Hello ", 6);
+  radio.writeAckPayload(1, &payload, sizeof(PayloadStruct));
 }
 
 /******************************************************************************************************
