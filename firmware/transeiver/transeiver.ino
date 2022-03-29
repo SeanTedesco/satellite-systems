@@ -77,15 +77,19 @@ PayloadStruct payload;
  * FUNCTION PROTOTYPES
  */
 void init_serial(void);
-void init_radio(void);
-void init_payload(void);
-void get_radio_number(void);
 void read_from_serial(void);
+
+void init_radio(void);
+void get_radio_number(void);
 void do_transmit(void);
 void do_receive(void);
+
+void init_payload(void);
+void make_payload(void);
+uint32_t get_num_payloads(void);
 char get_mode(void);
 void print_serial_buffer(void);
-uint32_t get_num_payloads(void);
+void slice(const char *str, char *result, size_t start, size_t end);
 
 /******************************************************************************************************
  * ARDUINO SETUP
@@ -104,15 +108,15 @@ void loop() {
   receive_from_serial();
   if (new_serial){
     mode = get_mode();
+    num_payloads = get_num_payloads();
+    //make_payload();
     new_serial = false;
   }
   if (mode == 'T'){
-    //Serial.println(F("<changing to transmitter -- enter '<r>' to switch>"));
     radio.stopListening();
     do_transmit();
     mode = 'R';
   } else if (mode == 'R'){
-    //Serial.println(F("<changing to receiver -- enter '<t>' to switch>"));
     radio.startListening();
     do_receive();
   } else {
@@ -127,9 +131,7 @@ void loop() {
  */
 void init_serial(){
   Serial.begin(115200);
-  while (!Serial) {
-    // some boards need to wait to ensure access to serial over USB
-  }
+  while (!Serial) {} // some boards need to wait to ensure access to serial over USB
   Serial.println(F("<ready: serial>"));
 }
 
@@ -308,4 +310,20 @@ void print_serial_buffer(){
  */
 uint32_t get_num_payloads(){
   return 1;
+}
+
+/******************************************************************************************************
+ * MAKE_PAYLOAD
+ */
+void make_payload(){
+  if (new_serial){
+    memcpy(payload.message, serial_buffer, 30);
+  }
+}
+
+/******************************************************************************************************
+ * SLICE
+ */
+void slice(const char *str, char *result, size_t start, size_t end){
+    strncpy(result, str + start, end - start);
 }
