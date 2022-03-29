@@ -101,15 +101,24 @@ void setup() {
  * ARDUINO LOOP
  */
 void loop() {
-  mode = get_mode();
+  receive_from_serial();
+  if (new_serial){
+    mode = get_mode();
+    new_serial = false;
+  }
   if (mode == 'T'){
     //Serial.println(F("<changing to transmitter -- enter '<r>' to switch>"));
     radio.stopListening();
     do_transmit();
+    mode = 'R';
   } else if (mode == 'R'){
     //Serial.println(F("<changing to receiver -- enter '<t>' to switch>"));
     radio.startListening();
     do_receive();
+  } else {
+    Serial.print(F("<error: unknown mode: "));
+    Serial.print(mode);
+    Serial.println(F(">"));
   }
 }
 
@@ -242,16 +251,12 @@ void do_receive() {
 }
 
 /******************************************************************************************************
- * READ_FROM_SERIAL
+ * GET_MODE
  */
 char get_mode(){
   char rc = 'R';
-  if (Serial.available()) {
-    receive_from_serial();
-    if (new_serial){
-      rc = toupper(serial_buffer[0]);
-      new_serial = false;
-    }
+  if (new_serial){
+    rc = toupper(serial_buffer[0]);
   }
   return rc;
 }
@@ -265,29 +270,30 @@ void receive_from_serial(){
   char startMarker = '<';
   char endMarker = '>';
   char rc;
-
-  while (Serial.available() > 0 && new_serial == false){
-    rc = Serial.read();
-    if (recvInProgress == true){
-      if (rc != endMarker){
-        serial_buffer[ndx] = rc;
-        ndx++;
-        if (ndx >= max_buffer_length){
-          ndx = max_buffer_length - 1;
+  
+  if (Serial.available()) {
+    while (Serial.available() > 0 && new_serial == false){
+      rc = Serial.read();
+      if (recvInProgress == true){
+        if (rc != endMarker){
+          serial_buffer[ndx] = rc;
+          ndx++;
+          if (ndx >= max_buffer_length){
+            ndx = max_buffer_length - 1;
+          }
+        } else{
+          serial_buffer[ndx] = '\0';
+          recvInProgress = false;
+          ndx = 0;
+          new_serial = true;
+          //print_serial_buffer();
         }
-      } else{
-        serial_buffer[ndx] = '\0';
-        recvInProgress = false;
-        ndx = 0;
-        new_serial = true;
-        //print_serial_buffer();
+      }else if (rc == startMarker){
+        recvInProgress = true;
       }
-    }else if (rc == startMarker){
-      recvInProgress = true;
     }
   }
 }
-
 /******************************************************************************************************
  * PRINT_SERIAL_BUFFER
  */
