@@ -68,7 +68,7 @@ RF24 radio(CE_PIN, CSN_PIN); // create a radio
  */
 //float payload = 0.0;
 struct PayloadStruct {
-  char message[7];          // only using 6 characters for TX & ACK payloads
+  char message[29];          // only using 6 characters for TX & ACK payloads
   uint8_t counter;
 };
 PayloadStruct payload;
