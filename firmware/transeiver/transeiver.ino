@@ -58,8 +58,8 @@ uint32_t num_payloads = 0;
 /******************************************************************************************************
  * GLOBAL DATA BUFFERS
  */
-const uint16_t max_payload_length = 32;
-char payload_buffer[max_payload_length];
+const uint16_t max_payload_length = 29;
+char payload_buffer[max_payload_length + 1];
 
 const uint16_t max_buffer_length = 256;
 char serial_buffer[max_buffer_length];
@@ -216,31 +216,40 @@ void do_transmit() {
   unsigned long start_timer = micros();                    // start the timer
   bool report = radio.write(&payload, sizeof(payload));    // transmit & save the report
   unsigned long end_timer = micros();                      // end the timer
+
   if (report) {
-    Serial.print(F("Transmission successful! "));          // payload was delivered
-    Serial.print(F("Time to transmit = "));
-    Serial.print(end_timer - start_timer);                 // print the timer result
-    Serial.print(F(" us. Sent: "));
-    Serial.print(payload.message);                         // print the outgoing message
-    Serial.print(payload.counter);                         // print the outgoing counter
-    uint8_t pipe;
-    if (radio.available(&pipe)) {                          // is there an ACK payload? grab the pipe number that received it
-      PayloadStruct received;
-      radio.read(&received, sizeof(received));             // get incoming ACK payload
-      Serial.print(F(" Recieved "));
-      Serial.print(radio.getDynamicPayloadSize());         // print incoming payload size
-      Serial.print(F(" bytes on pipe "));
-      Serial.print(pipe);                                  // print pipe number that received the ACK
-      Serial.print(F(": "));
-      Serial.print(received.message);                      // print incoming message
-      Serial.println(received.counter);                    // print incoming counter
-      // save incoming counter & increment for next outgoing
-      payload.counter = received.counter + 1;
+    if (DEBUG) {
+      Serial.print(F("Transmission successful! "));          // payload was delivered
+      Serial.print(F("Time to transmit = "));
+      Serial.print(end_timer - start_timer);                 // print the timer result
+      Serial.print(F(" us. Sent: "));
+      Serial.print(payload.message);                         // print the outgoing message
+      Serial.print(payload.counter);                         // print the outgoing counter
     } else {
-      Serial.println(F(" Recieved: an empty ACK packet")); // empty ACK packet received
+      memcpy(serial_buffer, payload.message, max_payload_length);
+      send_to_serial();
+    }
+
+    uint8_t pipe;
+    if (radio.available(&pipe)) {                             // is there an ACK payload? grab the pipe number that received it
+      PayloadStruct received;
+      radio.read(&received, sizeof(received));                // get incoming ACK payload
+      if (DEBUG) {
+        Serial.print(F(" Recieved "));
+        Serial.print(radio.getDynamicPayloadSize());          // print incoming payload size
+        Serial.print(F(" bytes on pipe "));
+        Serial.print(pipe);                                   // print pipe number that received the ACK
+        Serial.print(F(": "));
+        Serial.print(received.message);                       // print incoming message
+        Serial.println(received.counter);                     // print incoming counter
+        payload.counter = received.counter + 1;
+      }
+
+    } else {
+      Serial.println(F("warn: an empty ACK packet"));    // empty ACK packet received
     }
   } else {
-    Serial.println(F("Transmission failed or timed out"));    // payload was not delivered
+    Serial.println(F("error: transmission failed or timed out"));    // payload was not delivered
   }
 
     // to make this example readable in the serial monitor
