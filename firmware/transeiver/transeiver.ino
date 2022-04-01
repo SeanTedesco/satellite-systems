@@ -88,6 +88,7 @@ PayloadStruct payload;
  */
 void init_serial(void);
 void read_from_serial(void);
+void send_to_serial(void);
 
 void init_radio(void);
 void get_radio_number(void);
@@ -99,7 +100,7 @@ void init_payload(void);
 void make_header(void);
 uint32_t get_num_payloads(void);
 char get_mode(void);
-void print_serial_buffer(void);
+
 void slice(const char *str, char *result, size_t start, size_t end);
 
 /******************************************************************************************************
@@ -358,7 +359,6 @@ void receive_from_serial(){
           recvInProgress = false;
           ndx = 0;
           new_serial = true;
-          //print_serial_buffer();
         }
       } else if (rc == startMarker){
         recvInProgress = true;
@@ -368,11 +368,11 @@ void receive_from_serial(){
 }
 
 /******************************************************************************************************
- * @brief helper function to display entire contents of serial buffer. 
+ * @brief send the contents of the global serial buffer to the serial port.
  * @returns void
  */
-void print_serial_buffer(){
-  Serial.print(F("<serial buffer: "));
+void send_to_serial(){
+  Serial.print(F("<"));
   Serial.print(serial_buffer);
   Serial.println(F(">"));
 }
