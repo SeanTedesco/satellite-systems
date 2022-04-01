@@ -2,8 +2,12 @@
  * Description: Firmware for serial controlled radio module. Used to send data to a sibling
  * radio. Default state is receiving, and can be manually controlled to transmit or stream data. 
  * 
+ * Easy setup is made with the RF24 protoboard found in the hardware files of `satellite-systems`
+ * repository. 
+ * 
  * Author: Sean Tedesco
  */
+
 /******************************************************************************************************
  * INCLUDES
  */
@@ -12,11 +16,17 @@
 #include "RF24.h"
 
 /******************************************************************************************************
- * HARDWARE CONFIGURATION
+ * HARDWARE CONFIGURATION (USER INPUT REQUIRED)
  */
 #define CE_PIN 9
 #define CSN_PIN 10
 bool radioNumber = 0;
+
+/******************************************************************************************************
+ * DEBUG CONFIGURATION (USER INPUT REQUIRED)
+ */
+bool DEBUG = true;
+bool VERBOSE = true; 
 
 /******************************************************************************************************
  * CONTROL FLAGS
@@ -93,7 +103,8 @@ void print_serial_buffer(void);
 void slice(const char *str, char *result, size_t start, size_t end);
 
 /******************************************************************************************************
- * ARDUINO SETUP
+ * @brief arduino main setup.
+ * @returns void
  */
 void setup() {
   init_serial();
@@ -103,7 +114,8 @@ void setup() {
 }
 
 /******************************************************************************************************
- * ARDUINO LOOP
+ * @brief arduino main loop.
+ * @returns void
  */
 void loop() {
   receive_from_serial();
@@ -133,7 +145,8 @@ void loop() {
 }
 
 /******************************************************************************************************
- * INIT_SERIAL
+ * @brief initialize the serial module.
+ * @returns void
  */
 void init_serial(){
   Serial.begin(115200);
@@ -142,7 +155,8 @@ void init_serial(){
 }
 
 /******************************************************************************************************
- * INIT_RADIO
+ * @brief initialize the radio module.
+ * @returns void
  */
 void init_radio(){
   // initialize the transceiver on the SPI bus
@@ -150,7 +164,9 @@ void init_radio(){
     Serial.println(F("<error: radio hardware is not responding>"));
     while (1) {} // hold in infinite loop
   }
-  get_radio_number();
+  if (DEBUG){
+    set_radio_number();
+  }
   radio.setPALevel(RF24_PA_LOW);  // RF24_PA_MAX is default.
   //radio.setPayloadSize(sizeof(payload)); 
   radio.enableDynamicPayloads();
@@ -162,7 +178,8 @@ void init_radio(){
 }
 
 /******************************************************************************************************
- * INIT_PAYLOAD
+ * @brief initialize the global payload and the acknowledgement payload.
+ * @returns void
  */
 void init_payload(){
   payload_buffer[max_payload_length] = 0;
@@ -171,9 +188,10 @@ void init_payload(){
 }
 
 /******************************************************************************************************
- * GET_RADIO_NUMBER
+ * @brief manually set the unique radio number for this radio. Number can be either 0 or 1. 
+ * @returns void
  */
-void get_radio_number(){
+void set_radio_number(){
   char input;
   Serial.println(F("<enter radio number: '0' or '1'>"));
   while (!Serial.available()) {
@@ -186,9 +204,11 @@ void get_radio_number(){
   Serial.println(F(">"));
 }
 
-
 /******************************************************************************************************
- * DO_TRANSMIT
+ * @brief transmit a single payload to the other radio.
+ * @note utilizes the global serial buffer.
+ * @note should be setup by receiving a header serial message.
+ * @returns void
  */
 void do_transmit() {
   radio.flush_tx();
@@ -223,11 +243,14 @@ void do_transmit() {
   }
 
     // to make this example readable in the serial monitor
-    delay(1000);  // slow transmissions down by 1 second
+    delay(10);  // slow transmissions down by 10 millisecond
 }
 
 /******************************************************************************************************
- * DO_RECEIVE
+ * @brief receive a payload from the other radio.
+ * @note utilizes the global serial buffer.
+ * @note should be setup by receiving a header serial message.
+ * @returns void
  */
 void do_receive() {
     uint8_t pipe;
@@ -255,7 +278,10 @@ void do_receive() {
 }
 
 /******************************************************************************************************
- * DO_STREAM
+ * @brief stream payloads to the other radio.
+ * @note utilizes the global serial buffer.
+ * @note should be setup by receiving a header serial message.
+ * @returns void
  */
 void do_stream(){
   radio.flush_tx();
@@ -288,11 +314,13 @@ void do_stream(){
   Serial.print(failures);                     // print failures detected
   Serial.println(F(" failures detected"));
   // to make this example readable in the serial monitor
-  delay(1000);  // slow transmissions down by 1 second
+  delay(10);  // slow transmissions down by 10 millisecond
 }
 
 /******************************************************************************************************
- * GET_MODE
+ * @brief gets the expected mode of the radio from the serial buffer. The mode character (R, S, T)
+ * should always be the first character in the serial buffer when receiving a header message. 
+ * @returns character representing mode (R (defualt), S, or T)
  */
 char get_mode(){
   char rc = 'R';
@@ -303,7 +331,10 @@ char get_mode(){
 }
 
 /******************************************************************************************************
- * RECEIVE_FROM_SERIAL
+ * @brief receive a message from the serial port. This is the main way the "radio" interfaces
+ * with the outside world. Serial communication is indicated with both start and end markers.
+ * @note populates the global serial buffer
+ * @returns void
  */
 void receive_from_serial(){
   static bool recvInProgress = false;
@@ -335,8 +366,10 @@ void receive_from_serial(){
     }
   }
 }
+
 /******************************************************************************************************
- * PRINT_SERIAL_BUFFER
+ * @brief helper function to display entire contents of serial buffer. 
+ * @returns void
  */
 void print_serial_buffer(){
   Serial.print(F("<serial buffer: "));
@@ -345,14 +378,23 @@ void print_serial_buffer(){
 }
 
 /******************************************************************************************************
- * GET_NUM_PAYLOADS
+ * @brief provide the number of 
+ * @note should be called when starting a transmission and after 
+ * successfully receiving the first serial message.
+ * @returns the number of payloads (30 bytes) to be sent. 
  */
 uint32_t get_num_payloads(){
   return 2;
 }
 
 /******************************************************************************************************
- * MAKE_HEADER
+ * @brief copies the first 30 bytes of the serial buffer into the payload
+ * message buffer.
+ * @note should be called after successfully receiving a serial
+ * message.
+ * @note should be used as the first message between radios to set
+ * configurations (such as modes).
+ * @returns void
  */
 void make_header(){
   if (new_serial){
@@ -361,7 +403,13 @@ void make_header(){
 }
 
 /******************************************************************************************************
- * SLICE
+ * @brief create a substring from str pointer and place into result pointer,
+ *  incusive to both start and end character index.
+ * @param str - pointer to the string to be sliced.
+ * @param result - pointer to the sub-string created from the slice.
+ * @param start - index of str that begins the slice (inclusive).
+ * @param end - index of str that ends the slivce (inclusive).
+ * @returns void 
  */
 void slice(const char *str, char *result, size_t start, size_t end){
     strncpy(result, str + start, end - start);
