@@ -20,6 +20,7 @@ setuptools.setup(
     install_requires=[
         'pyserial',
         'argparse',
+        'picamera',
     ],
     classifiers=[
         'Programming Language :: Python :: 3',
@@ -31,6 +32,7 @@ setuptools.setup(
             [
                 'radio = satsystems.radio.radio:main',
                 'gps = satsystems.gps.gps:main',
+                'camera = satsystems.camera.camera:main',
             ],
     },
 )

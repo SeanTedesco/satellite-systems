@@ -43,3 +43,20 @@ And an example of the CLI is given below:
 ```
 gps --port '/dev/ttyUSB0' get
 ```
+
+## CAMERA
+:exclamation: When connecting the Pi-Camera to the Raspberry Pi, ensure that the Raspberry Pi is powered off! The camera will be damaged otherwise! :exclamation: You can follow the steps outlined [here](https://projects.raspberrypi.org/en/projects/getting-started-with-picamera/2) to configure the Raspberry Pi to use the Pi-Cam. 
+
+An example import into a python project is given below: 
+
+```
+from satsystems.camera.picam import PiCam
+
+camera = PiCam(uid='camera-1')
+
+```
+And an example of the CLI is given below: 
+
+```
+camera shot --filename 'test-shot-1'
+```
