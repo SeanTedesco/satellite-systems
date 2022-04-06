@@ -121,8 +121,6 @@ void setup() {
 void loop() {
   receive_from_serial();
   if (new_serial){
-    mode = get_mode();
-    num_payloads = get_num_payloads();
     make_header();
     new_serial = false;
   }
@@ -393,7 +391,15 @@ void send_to_serial(){
  * @returns the number of payloads (30 bytes) to be sent. 
  */
 uint32_t get_num_payloads(){
-  return 2;
+  uint16_t n = atoi(serial_buffer[1]);
+  uint16_t d;
+  if (new_serial){
+    for (uint8_t i=1; i<4; i++){
+      d = atoi(serial_buffer[i]);
+      n = n*10 + d
+    }
+  }
+  return n;
 }
 
 /******************************************************************************************************
@@ -404,10 +410,16 @@ uint32_t get_num_payloads(){
  * @note should be used as the first message between radios to set
  * configurations (such as modes).
  * @returns void
+ * 
+ * |***         HEADER FORMAT (30 BYTES)        ***|
+ * |   1    |         2-4             |   5-30     |
+ * | T/S/R  | EXPECTED TRANSMISSIONS  | EXTRA DATA |
  */
 void make_header(){
   if (new_serial){
-    memcpy(payload.message, serial_buffer, 30);
+    mode = get_mode();
+    num_payloads = get_num_payloads();
+    slice(serial_buffer, payload.message, 5, 30)
   }
 }
 
