@@ -4,7 +4,9 @@ Package for common satellite systems to be used across multiple projects.
 ## Setup 
 ```
 cd satellite-systems/
-pip install -e .
+python3 -m venv .venv
+. .venv/bin/actiave
+.venv/bin/pip3 install -e .
 ```
 
 Ensure all your path variables are set on your computer. You may need to include the following paths in your environment variables: 

@@ -419,7 +419,7 @@ void make_header(){
   if (new_serial){
     mode = get_mode();
     num_payloads = get_num_payloads();
-    slice(serial_buffer, payload.message, 5, 30)
+    slice(serial_buffer, payload.message, 4, 30)
   }
 }
 
