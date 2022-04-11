@@ -26,7 +26,6 @@ bool radioNumber = 0;
  * DEBUG CONFIGURATION (USER INPUT REQUIRED)
  */
 bool DEBUG = true;
-bool VERBOSE = true; 
 
 /******************************************************************************************************
  * CONTROL FLAGS
@@ -316,11 +315,13 @@ void do_stream(){
   }
   unsigned long end_timer = micros();         // end the timer
 
-  Serial.print(F("Time to transmit = "));
-  Serial.print(end_timer - start_timer);      // print the timer result
-  Serial.print(F(" us with "));
-  Serial.print(failures);                     // print failures detected
-  Serial.println(F(" failures detected"));
+  if (DEBUG){
+    Serial.print(F("Time to transmit = "));
+    Serial.print(end_timer - start_timer);      // print the timer result
+    Serial.print(F(" us with "));
+    Serial.print(failures);                     // print failures detected
+    Serial.println(F(" failures detected"));
+  }
   // to make this example readable in the serial monitor
   delay(10);  // slow transmissions down by 10 millisecond
 }
@@ -419,7 +420,7 @@ void make_header(){
   if (new_serial){
     mode = get_mode();
     num_payloads = get_num_payloads();
-    slice(serial_buffer, payload.message, 4, 30)
+    slice(serial_buffer, payload.message, 4, max_payload_length)
   }
 }
 
