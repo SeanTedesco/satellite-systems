@@ -50,10 +50,6 @@ bool clear_for_serial = false;
 // T=transmit, S=stream, R=receive (default)
 char mode = 'R';
 
-// used to control the number of required transmissions for the radio
-// if greater than 1, stream the data, if 1 transmit the data
-uint32_t num_payloads = 0;
-
 /******************************************************************************************************
  * GLOBAL DATA BUFFERS
  */
@@ -120,7 +116,7 @@ void setup() {
 void loop() {
   receive_from_serial();
   if (new_serial){
-    make_header();
+    mode = get_mode();
     new_serial = false;
   }
   if (mode == 'T'){
@@ -208,9 +204,10 @@ void set_radio_number(){
  * @note should be setup by receiving a header serial message.
  * @returns void
  */
-void do_transmit() {
+void do_transmit(){
   radio.flush_tx();
   unsigned long start_timer = micros();                    // start the timer
+  slice(serial_buffer, payload.message, 1, max_payload_length);
   bool report = radio.write(&payload, sizeof(payload));    // transmit & save the report
   unsigned long end_timer = micros();                      // end the timer
 
@@ -259,7 +256,7 @@ void do_transmit() {
  * @note should be setup by receiving a header serial message.
  * @returns void
  */
-void do_receive() {
+void do_receive(){
     uint8_t pipe;
     if (radio.available(&pipe)) {                    // is there a payload? get the pipe number that recieved it
       uint8_t bytes = radio.getDynamicPayloadSize(); // get the size of the payload
@@ -287,20 +284,23 @@ void do_receive() {
 /******************************************************************************************************
  * @brief stream payloads to the other radio.
  * @note utilizes the global serial buffer.
- * @note should be setup by receiving a header serial message.
+ * @note should be setup by receiving a header serial message, ex: <s078######>
  * @returns void
  */
 void do_stream(){
-  radio.flush_tx();
-  radio.setPayloadSize(sizeof(payload));
+
   uint8_t i = 0;
   uint8_t failures = 0;
+  uint32_t num_payloads = get_num_payloads();
+
+  radio.flush_tx();
+  radio.setPayloadSize(sizeof(payload));
   unsigned long start_timer = micros();
   while (i < num_payloads) {
     while (!new_serial){
       receive_from_serial();
     }
-    memcpy(payload.message, serial_buffer, 30);
+    slice(serial_buffer, payload.message, 0, max_payload_length);
     if (!radio.writeFast(&payload, sizeof(payload))) {
       failures++;
       radio.reUseTX();
@@ -394,11 +394,9 @@ void send_to_serial(){
 uint32_t get_num_payloads(){
   uint16_t n = atoi(serial_buffer[1]);
   uint16_t d;
-  if (new_serial){
-    for (uint8_t i=1; i<4; i++){
-      d = atoi(serial_buffer[i]);
-      n = n*10 + d
-    }
+  for (uint8_t i=1; i<4; i++){
+    d = atoi(serial_buffer[i]);
+    n = n*10 + d
   }
   return n;
 }
@@ -420,7 +418,7 @@ void make_header(){
   if (new_serial){
     mode = get_mode();
     num_payloads = get_num_payloads();
-    slice(serial_buffer, payload.message, 4, max_payload_length)
+    slice(serial_buffer, payload.message, 4, max_payload_length);
   }
 }
 
