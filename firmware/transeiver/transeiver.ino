@@ -73,8 +73,7 @@ RF24 radio(CE_PIN, CSN_PIN); // create a radio
  */
 //float payload = 0.0;
 struct PayloadStruct {
-  char message[29];
-  uint8_t counter;
+  char message[30];
 };
 PayloadStruct payload;
 
@@ -177,7 +176,7 @@ void init_radio(){
  */
 void init_payload(){
   payload_buffer[max_payload_length] = 0;
-  memcpy(payload.message, "Hello ", 6);
+  memcpy(payload.message, "ACK ", 4);
   radio.writeAckPayload(1, &payload, sizeof(PayloadStruct));
 }
 
@@ -218,7 +217,6 @@ void do_transmit(){
       Serial.print(end_timer - start_timer);                 // print the timer result
       Serial.print(F(" us. Sent: "));
       Serial.print(payload.message);                         // print the outgoing message
-      Serial.print(payload.counter);                         // print the outgoing counter
     } else {
       memcpy(serial_buffer, payload.message, max_payload_length);
       send_to_serial();
@@ -235,8 +233,6 @@ void do_transmit(){
         Serial.print(pipe);                                   // print pipe number that received the ACK
         Serial.print(F(": "));
         Serial.print(received.message);                       // print incoming message
-        Serial.println(received.counter);                     // print incoming counter
-        payload.counter = received.counter + 1;
       }
 
     } else {
@@ -268,14 +264,11 @@ void do_receive(){
       Serial.print(pipe);                            // print the pipe number
       Serial.print(F(": "));
       Serial.print(received.message);                // print incoming message
-      Serial.print(received.counter);                // print incoming counter
       Serial.print(F(" Sent: "));
       Serial.print(payload.message);                 // print outgoing message
-      Serial.println(payload.counter);               // print outgoing counter
 
-      // save incoming counter & increment for next outgoing
-      payload.counter = received.counter + 1;
       // load the payload for the first received transmission on pipe 0
+      memcpy(payload.message, "ACK ", 4);
       radio.writeAckPayload(1, &payload, sizeof(payload));
     }
   delay(10);
@@ -396,7 +389,7 @@ uint32_t get_num_payloads(){
   uint16_t d;
   for (uint8_t i=1; i<4; i++){
     d = atoi(serial_buffer[i]);
-    n = n*10 + d
+    n = n*10 + d;
   }
   return n;
 }
@@ -417,7 +410,6 @@ uint32_t get_num_payloads(){
 void make_header(){
   if (new_serial){
     mode = get_mode();
-    num_payloads = get_num_payloads();
     slice(serial_buffer, payload.message, 4, max_payload_length);
   }
 }
