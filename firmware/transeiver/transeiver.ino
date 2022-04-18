@@ -212,10 +212,9 @@ void do_transmit(){
 
   if (report) {
     if (DEBUG) {
-      Serial.print(F("Transmission successful! "));          // payload was delivered
-      Serial.print(F("Time to transmit = "));
+      Serial.print(F("<time: "));
       Serial.print(end_timer - start_timer);                 // print the timer result
-      Serial.print(F(" us. Sent: "));
+      Serial.print(F(" us. sent: "));
       Serial.print(payload.message);                         // print the outgoing message
     } else {
       memcpy(serial_buffer, payload.message, max_payload_length);
@@ -227,12 +226,13 @@ void do_transmit(){
       PayloadStruct received;
       radio.read(&received, sizeof(received));                // get incoming ACK payload
       if (DEBUG) {
-        Serial.print(F(" Recieved "));
+        Serial.print(F(" recieved: "));
         Serial.print(radio.getDynamicPayloadSize());          // print incoming payload size
         Serial.print(F(" bytes on pipe "));
         Serial.print(pipe);                                   // print pipe number that received the ACK
         Serial.print(F(": "));
         Serial.print(received.message);                       // print incoming message
+        Serial.println(F(">"))
       }
 
     } else {
@@ -258,18 +258,19 @@ void do_receive(){
       uint8_t bytes = radio.getDynamicPayloadSize(); // get the size of the payload
       PayloadStruct received;
       radio.read(&received, sizeof(received));       // get incoming payload
-      Serial.print(F("Received "));
+      Serial.print(F("<received: "));
       Serial.print(bytes);                           // print the size of the payload
       Serial.print(F(" bytes on pipe "));
       Serial.print(pipe);                            // print the pipe number
       Serial.print(F(": "));
       Serial.print(received.message);                // print incoming message
-      Serial.print(F(" Sent: "));
+      Serial.print(F(" sent: "));
       Serial.print(payload.message);                 // print outgoing message
+      Serial.println(F(">"))
 
       // load the payload for the first received transmission on pipe 0
       memcpy(payload.message, "ACK ", 4);
-      radio.writeAckPayload(1, &payload, sizeof(payload));
+      radio.writeAckPayload(1, &payload, sizeof(PayloadStruct));
     }
   delay(10);
 }
@@ -309,11 +310,11 @@ void do_stream(){
   unsigned long end_timer = micros();         // end the timer
 
   if (DEBUG){
-    Serial.print(F("Time to transmit = "));
+    Serial.print(F("<time: "));
     Serial.print(end_timer - start_timer);      // print the timer result
     Serial.print(F(" us with "));
     Serial.print(failures);                     // print failures detected
-    Serial.println(F(" failures detected"));
+    Serial.println(F(" failures detected>"));
   }
   // to make this example readable in the serial monitor
   delay(10);  // slow transmissions down by 10 millisecond
@@ -385,7 +386,7 @@ void send_to_serial(){
  * @returns the number of payloads (30 bytes) to be sent. 
  */
 uint32_t get_num_payloads(){
-  uint16_t n = atoi(serial_buffer[1]);
+  uint32_t n = atoi(serial_buffer[1]);
   uint16_t d;
   for (uint8_t i=1; i<4; i++){
     d = atoi(serial_buffer[i]);
