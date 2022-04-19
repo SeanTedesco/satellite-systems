@@ -8,7 +8,18 @@ class RF24(Radio):
 
         self.logger = logging.getLogger(__file__)
         self.logger.setLevel(logging.DEBUG)
-        self.stop_receive = 'STOP'                  # message to stop receiving messages 
+        self.stop_receive = 'STOP'                  # message to stop receiving messages
+
+        self.command_dict = {
+            0x01: {
+                'code': 'LED-GREEN',
+                'rc': 0x01,
+            },
+            0x02: {
+                'code': 'LED-RED',
+                'rc': 0x02,
+            },
+        }
 
     def transmit(self, data:str):
         '''Send a message.
