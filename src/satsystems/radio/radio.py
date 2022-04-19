@@ -12,9 +12,9 @@ class Radio:
     def __init__(self, port, baud=115200, start_marker='<', end_marker='>'):
         try:
             self.arduino = serial.Serial(port=port, baudrate=baud, timeout=10, rtscts=True)
-            self._wait_for_ready(self)
         except SerialException as e:
             raise e
+        self._wait_for_ready(self)
 
         self._start_marker = start_marker
         self._end_marker = end_marker
@@ -35,6 +35,16 @@ class Radio:
 
     def command(self, command_code:int):
         '''Send a command/request to the other radio, await for a response.'''
+        raise NotImplementedError('Should be implemented by derived class.')
+
+
+    def stream(self, filename:str):
+        '''Stream data in a file.'''
+        raise NotImplementedError('Should be implemented by derived class.')
+
+
+    def beacon(self):
+        '''Transmit a beacon message.'''
         raise NotImplementedError('Should be implemented by derived class.')
 
 
