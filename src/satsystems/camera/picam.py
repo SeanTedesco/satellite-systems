@@ -1,6 +1,7 @@
-from picamera import PiCamera
+import sys
 from time import sleep
 from datetime import datetime
+from picamera import PiCamera
 
 class PiCam(PiCamera):
     
@@ -27,4 +28,3 @@ class PiCam(PiCamera):
         sleep(5)
         self.stop_recording()
         self.stop_preview()
-    
