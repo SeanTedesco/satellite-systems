@@ -14,7 +14,6 @@ class Radio:
             self.arduino = serial.Serial(port=port, baudrate=baud, timeout=10, rtscts=True)
         except SerialException as e:
             raise e
-        self._wait_for_ready(self)
 
         self._start_marker = start_marker
         self._end_marker = end_marker
@@ -51,7 +50,7 @@ class Radio:
     def _wait_for_ready(self):
         msg = ""
         while msg.find("<ready: serial>") == -1:
-            msg = self.receive_from_arduino()
+            msg = self._receive_from_arduino()
             if not (msg == "xxx"):
                 print(msg)
 
@@ -80,9 +79,9 @@ class Radio:
 
     def _send_to_arduino(self, data:str):
 
-        stringWithMarkers = self.start_marker
+        stringWithMarkers = self._start_marker
         stringWithMarkers += data
-        stringWithMarkers += self.end_marker
+        stringWithMarkers += self._end_marker
         self.arduino.flush()
         try:
             self.arduino.write(stringWithMarkers.encode("utf-8"))
@@ -107,12 +106,10 @@ def parse_cmdline():
     return parser.parse_args()
 
 def do_transmit(radio, options):
-    print(f'do transmit with: {options}')
     data = options.data
     radio.transmit(data)
 
 def do_receive(radio, options):
-    print(f'do receive with: {options}')
     output = options.output
     radio.receive(output)
 
