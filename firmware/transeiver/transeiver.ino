@@ -20,7 +20,7 @@
  */
 #define CE_PIN 9
 #define CSN_PIN 10
-bool radioNumber = 0;
+bool radioNumber = 1;
 
 /******************************************************************************************************
  * DEBUG CONFIGURATION (USER INPUT REQUIRED)
@@ -158,7 +158,7 @@ void init_radio(){
     while (1) {} // hold in infinite loop
   }
   if (DEBUG){
-    set_radio_number();
+    //set_radio_number();
   }
   radio.setPALevel(RF24_PA_LOW);  // RF24_PA_MAX is default.
   //radio.setPayloadSize(sizeof(payload)); 
@@ -188,7 +188,7 @@ void set_radio_number(){
   char input;
   Serial.println(F("<enter radio number: '0' or '1'>"));
   while (!Serial.available()) {
-    // wait for user inputs
+    //wait for user inputs
   }
   input = Serial.parseInt();
   radioNumber = input == 1;
