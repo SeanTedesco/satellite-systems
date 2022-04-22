@@ -6,6 +6,7 @@ Package for common satellite systems to be used across multiple projects.
 cd satellite-systems/
 python3 -m venv .venv
 . .venv/bin/actiave
+.venv/bin/python3 -m pip install --upgrade pip
 .venv/bin/pip3 install -e .
 ```
 
