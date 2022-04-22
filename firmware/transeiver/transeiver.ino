@@ -232,7 +232,7 @@ void do_transmit(){
         Serial.print(pipe);                                   // print pipe number that received the ACK
         Serial.print(F(": "));
         Serial.print(received.message);                       // print incoming message
-        Serial.println(F(">"))
+        Serial.println(F(">"));
       }
 
     } else {
@@ -266,7 +266,7 @@ void do_receive(){
       Serial.print(received.message);                // print incoming message
       Serial.print(F(" sent: "));
       Serial.print(payload.message);                 // print outgoing message
-      Serial.println(F(">"))
+      Serial.println(F(">"));
 
       // load the payload for the first received transmission on pipe 0
       memcpy(payload.message, "ACK ", 4);
