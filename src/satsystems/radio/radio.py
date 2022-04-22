@@ -21,6 +21,8 @@ class Radio:
         self._data_started = False
         self._message_complete = False
 
+        self._wait_for_ready()
+
 
     def transmit(self, data:str):
         '''Send a message.'''
@@ -49,7 +51,7 @@ class Radio:
 
     def _wait_for_ready(self):
         msg = ""
-        while msg.find("<ready: serial>") == -1:
+        while msg.find("ready: serial") == -1:
             msg = self._receive_from_arduino()
             if not (msg == "xxx"):
                 print(msg)
@@ -60,15 +62,15 @@ class Radio:
         if self.arduino.inWaiting() > 0 and self._message_complete == False:
             x = self.arduino.read().decode("utf-8")  # decode needed for Python3
 
-            if dataStarted == True:
+            if self._data_started == True:
                 if x != self._end_marker:
                     self._data_buffer = self._data_buffer + x
                 else:
-                    dataStarted = False
+                    self._data_started = False
                     self._message_complete = True
             elif x == self._start_marker:
                 self._data_buffer = ""
-                dataStarted = True
+                self._data_started = True
 
         if self._message_complete == True:
             self._message_complete = False
@@ -84,6 +86,7 @@ class Radio:
         stringWithMarkers += self._end_marker
         self.arduino.flush()
         try:
+            print(f'sending to arduino: {stringWithMarkers}')
             self.arduino.write(stringWithMarkers.encode("utf-8"))
         except Exception as e:
             raise e
@@ -110,7 +113,7 @@ def do_transmit(radio, options):
     radio.transmit(data)
 
 def do_receive(radio, options):
-    output = options.output
+    output = options.filename
     radio.receive(output)
 
 def main():
