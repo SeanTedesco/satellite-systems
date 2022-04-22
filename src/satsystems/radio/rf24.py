@@ -10,16 +10,6 @@ class RF24(Radio):
         self.logger.setLevel(logging.DEBUG)
         self.stop_receive = 'STOP'                  # message to stop receiving messages
 
-        self.command_dict = {
-            0x01: {
-                'code': 'LED-GREEN',
-                'rc': 0x01,
-            },
-            0x02: {
-                'code': 'LED-RED',
-                'rc': 0x02,
-            },
-        }
 
     def transmit(self, data:str):
         '''Send a message.
@@ -44,7 +34,7 @@ class RF24(Radio):
         if len(data) > 32: # max 32 bytes for a single transmission
             raise ValueError(f'string is too long, {data_string_len} is greater than 32 characters')
 
-        data_string = 'T' + data_string
+        data_string = 't' + data_string
         try:
             self._send_to_arduino(data_string)
         except Exception as e:
