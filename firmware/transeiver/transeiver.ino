@@ -221,7 +221,7 @@ void do_transmit(){
     } else {
         uint8_t pipe;
         if (!radio.available(&pipe)) {                                // expect to have an ACK packet... raise a warning if there is none!
-            Serial.println(F("warn:empty ACK packet"));               // empty ACK packet received
+            Serial.println(F("<warn: empty ACK packet>"));               // empty ACK packet received
         } else {
             PayloadStruct received;
             radio.read(&received, sizeof(received));                  // get incoming ACK payload
@@ -241,7 +241,7 @@ void do_transmit(){
                 Serial.println(pipe);
             } else {
                 Serial.print(F("<"));
-                Serial.println(received.message);
+                Serial.print(received.message);
                 Serial.print(F(">"));
             }
         }
