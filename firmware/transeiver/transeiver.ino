@@ -53,9 +53,6 @@ char mode = 'R';
 /******************************************************************************************************
  * GLOBAL DATA BUFFERS
  */
-const uint16_t max_payload_length = 29;
-char payload_buffer[max_payload_length + 1];
-
 const uint16_t max_buffer_length = 256;
 char serial_buffer[max_buffer_length];
 
@@ -71,11 +68,12 @@ RF24 radio(CE_PIN, CSN_PIN); // create a radio
 /******************************************************************************************************
  * PAYLOAD PARAMETERS
  */
-//float payload = 0.0;
+const uint16_t max_payload_length = 32;
 struct PayloadStruct {
-  char message[30];
+  char message[max_payload_length];
 };
 PayloadStruct payload;
+PayloadStruct ackload;
 
 /******************************************************************************************************
  * FUNCTION PROTOTYPES
@@ -102,10 +100,12 @@ void slice(const char *str, char *result, size_t start, size_t end);
  * @returns void
  */
 void setup() {
-  init_serial();
-  init_radio();
-  init_payload();
-  Serial.println(F("<enter '<t>' to begin transmitting to the other node>"));
+    init_serial();
+    init_radio();
+    init_payload();
+    if (DEBUG) {
+        Serial.println(F("Enter '<t message>' to begin transmitting to the other radio!\n"));
+    }
 }
 
 /******************************************************************************************************
@@ -142,9 +142,12 @@ void loop() {
  * @returns void
  */
 void init_serial(){
-  Serial.begin(115200);
-  while (!Serial) {} // some boards need to wait to ensure access to serial over USB
-  Serial.println(F("<ready: serial>"));
+    Serial.begin(115200);
+    while (!Serial) {} // some boards need to wait to ensure access to serial over USB
+    if (DEBUG) {
+        Serial.println(F("\t\t***** Mock-Sat Half-Duplex Communication System *****"));
+    }
+    Serial.println(F("<ready: serial>"));
 }
 
 /******************************************************************************************************
@@ -152,22 +155,26 @@ void init_serial(){
  * @returns void
  */
 void init_radio(){
-  // initialize the transceiver on the SPI bus
-  if (!radio.begin()) {
-    Serial.println(F("<error: radio hardware is not responding>"));
-    while (1) {} // hold in infinite loop
-  }
-  if (DEBUG){
-    //set_radio_number();
-  }
-  radio.setPALevel(RF24_PA_LOW);  // RF24_PA_MAX is default.
-  //radio.setPayloadSize(sizeof(payload)); 
-  radio.enableDynamicPayloads();
-  radio.enableAckPayload();
-  radio.openWritingPipe(address[radioNumber]);
-  radio.openReadingPipe(1, address[!radioNumber]);
-  radio.startListening();
-  Serial.println(F("<ready: radio>"));
+    if (!radio.begin()) {
+        Serial.println(F("<error: radio hardware is not responding>"));
+        while (1) {} // hold in infinite loop
+    }
+
+    if (DEBUG){
+        set_radio_number();
+    }
+
+    radio.setPALevel(RF24_PA_LOW);  // RF24_PA_MAX is default.
+    radio.enableDynamicPayloads();
+    radio.enableAckPayload();
+    radio.openWritingPipe(address[radioNumber]);
+    radio.openReadingPipe(1, address[!radioNumber]);
+    radio.startListening();
+
+    if (DEBUG) {
+        Serial.println(F("<ready: radio>"));
+        radio.printDetails();
+    }
 }
 
 /******************************************************************************************************
@@ -175,9 +182,11 @@ void init_radio(){
  * @returns void
  */
 void init_payload(){
-  payload_buffer[max_payload_length] = 0;
-  memcpy(payload.message, "ACK ", 4);
-  radio.writeAckPayload(1, &payload, sizeof(PayloadStruct));
+  // payload packet
+
+  // acknowledgement packet
+  memcpy(ackload.message, "ACK", 4);
+  radio.writeAckPayload(1, &ackload, sizeof(PayloadStruct));
 }
 
 /******************************************************************************************************
@@ -185,16 +194,14 @@ void init_payload(){
  * @returns void
  */
 void set_radio_number(){
-  char input;
-  Serial.println(F("<enter radio number: '0' or '1'>"));
-  while (!Serial.available()) {
-    //wait for user inputs
-  }
-  input = Serial.parseInt();
-  radioNumber = input == 1;
-  Serial.print(F("<radioNumber = "));
-  Serial.print((int)radioNumber);
-  Serial.println(F(">"));
+    char input;
+    Serial.println(F("<enter radio number: '0' or '1'>"));
+    while (!Serial.available()) {}  //wait for user inputs
+    input = Serial.parseInt();
+    radioNumber = input == 1;
+    Serial.print(F("<radioNumber = "));
+    Serial.print((int)radioNumber);
+    Serial.println(F(">"));
 }
 
 /******************************************************************************************************
@@ -204,46 +211,41 @@ void set_radio_number(){
  * @returns void
  */
 void do_transmit(){
-  radio.flush_tx();
-  unsigned long start_timer = micros();                    // start the timer
-  slice(serial_buffer, payload.message, 1, max_payload_length);
-  bool report = radio.write(&payload, sizeof(payload));    // transmit & save the report
-  unsigned long end_timer = micros();                      // end the timer
-
-  if (report) {
-    if (DEBUG) {
-      Serial.print(F("<time: "));
-      Serial.print(end_timer - start_timer);                 // print the timer result
-      Serial.print(F(" us. sent: "));
-      Serial.print(payload.message);                         // print the outgoing message
+    radio.flush_tx();
+    unsigned long start_timer = micros();                             // start the timer
+    slice(serial_buffer, payload.message, 1, max_payload_length);
+    bool report = radio.write(&payload, sizeof(payload));             // transmit & save the report
+    unsigned long end_timer = micros();                               // end the timer
+    if (!report) {
+        Serial.println(F("error: transmission failed or timed out")); // payload was not delivered
     } else {
-      memcpy(serial_buffer, payload.message, max_payload_length);
-      send_to_serial();
+        uint8_t pipe;
+        if (!radio.available(&pipe)) {                                // expect to have an ACK packet... raise a warning if there is none!
+            Serial.println(F("warn:empty ACK packet"));               // empty ACK packet received
+        } else {
+            PayloadStruct received;
+            radio.read(&received, sizeof(received));                  // get incoming ACK payload
+            if (DEBUG) {
+                Serial.println(F("Transmission Report:"));            // print the timer result
+                Serial.print(F("\t- Transmission Time: "));
+                Serial.print(end_timer - start_timer);
+                Serial.println(F(" us"));
+                Serial.print(F("\t- Sent Message: "));
+                Serial.println(payload.message);                      // print the outgoing message
+                Serial.print(F("\t- Received Message: "));
+                Serial.println(received.message);                     // print the incoming message
+                Serial.print(F("\t- Extra Information: "));
+                Serial.print(F("recieved "));
+                Serial.print(radio.getDynamicPayloadSize());          // print incoming payload size
+                Serial.print(F(" bytes on pipe "));
+                Serial.println(pipe);
+            } else {
+                Serial.print(F("<"));
+                Serial.println(received.message);
+                Serial.print(F(">"));
+            }
+        }
     }
-
-    uint8_t pipe;
-    if (radio.available(&pipe)) {                             // is there an ACK payload? grab the pipe number that received it
-      PayloadStruct received;
-      radio.read(&received, sizeof(received));                // get incoming ACK payload
-      if (DEBUG) {
-        Serial.print(F(" recieved: "));
-        Serial.print(radio.getDynamicPayloadSize());          // print incoming payload size
-        Serial.print(F(" bytes on pipe "));
-        Serial.print(pipe);                                   // print pipe number that received the ACK
-        Serial.print(F(": "));
-        Serial.print(received.message);                       // print incoming message
-        Serial.println(F(">"));
-      }
-
-    } else {
-      Serial.println(F("warn: an empty ACK packet"));    // empty ACK packet received
-    }
-  } else {
-    Serial.println(F("error: transmission failed or timed out"));    // payload was not delivered
-  }
-
-    // to make this example readable in the serial monitor
-    delay(10);  // slow transmissions down by 10 millisecond
 }
 
 /******************************************************************************************************
@@ -254,25 +256,27 @@ void do_transmit(){
  */
 void do_receive(){
     uint8_t pipe;
-    if (radio.available(&pipe)) {                    // is there a payload? get the pipe number that recieved it
-      uint8_t bytes = radio.getDynamicPayloadSize(); // get the size of the payload
-      PayloadStruct received;
-      radio.read(&received, sizeof(received));       // get incoming payload
-      Serial.print(F("<received: "));
-      Serial.print(bytes);                           // print the size of the payload
-      Serial.print(F(" bytes on pipe "));
-      Serial.print(pipe);                            // print the pipe number
-      Serial.print(F(": "));
-      Serial.print(received.message);                // print incoming message
-      Serial.print(F(" sent: "));
-      Serial.print(payload.message);                 // print outgoing message
-      Serial.println(F(">"));
-
-      // load the payload for the first received transmission on pipe 0
-      memcpy(payload.message, "ACK ", 4);
-      radio.writeAckPayload(1, &payload, sizeof(PayloadStruct));
+    if (radio.available(&pipe)) {                             // is there a payload? get the pipe number that recieved it
+        PayloadStruct received;
+        radio.read(&received, sizeof(received));              // get incoming ACK payload
+        radio.writeAckPayload(1, &ackload, sizeof(PayloadStruct));
+        if (DEBUG) {
+            Serial.println(F("Reception Report:"));           // print the incoming message
+            Serial.print(F("\t- Received Message: "));
+            Serial.println(received.message);
+            Serial.print(F("\t- Response Message: "));
+            Serial.println(ackload.message);
+            Serial.print(F("\t- Extra Information: "));
+            Serial.print(F("recieved "));
+            Serial.print(radio.getDynamicPayloadSize());          // print incoming payload size
+            Serial.print(F(" bytes on pipe "));
+            Serial.println(pipe);
+        } else {
+            Serial.print(F("<"));
+            Serial.println(received.message);
+            Serial.print(F(">"));
+        }
     }
-  delay(10);
 }
 
 /******************************************************************************************************

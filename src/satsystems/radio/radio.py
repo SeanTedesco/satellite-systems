@@ -50,17 +50,17 @@ class Radio:
 
 
     def _wait_for_ready(self):
-        msg = ""
-        while msg.find("ready: serial") == -1:
+        msg = ''
+        while msg.find('ready: serial') == -1:
             msg = self._receive_from_arduino()
-            if not (msg == "xxx"):
+            if not (msg == 'xxx'):
                 print(msg)
 
 
     def _receive_from_arduino(self):
 
-        if self.arduino.inWaiting() > 0 and self._message_complete == False:
-            x = self.arduino.read().decode("utf-8")  # decode needed for Python3
+        while self.arduino.inWaiting() > 0 and self._message_complete == False:
+            x = self.arduino.read().decode('utf-8')  # decode needed for Python3
 
             if self._data_started == True:
                 if x != self._end_marker:
@@ -69,14 +69,14 @@ class Radio:
                     self._data_started = False
                     self._message_complete = True
             elif x == self._start_marker:
-                self._data_buffer = ""
+                self._data_buffer = ''
                 self._data_started = True
 
         if self._message_complete == True:
             self._message_complete = False
             return self._data_buffer
         else:
-            return "xxx"
+            return 'xxx'
 
 
     def _send_to_arduino(self, data:str):
@@ -86,8 +86,7 @@ class Radio:
         stringWithMarkers += self._end_marker
         self.arduino.flush()
         try:
-            print(f'sending to arduino: {stringWithMarkers}')
-            self.arduino.write(stringWithMarkers.encode("utf-8"))
+            self.arduino.write(stringWithMarkers.encode('utf-8'))
         except Exception as e:
             raise e
 

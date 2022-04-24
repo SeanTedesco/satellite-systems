@@ -59,11 +59,13 @@ class RF24(Radio):
 
         while received != self.stop_receive:
             received = self._receive_from_arduino()
-            with open(output_file, 'w', encoding='utf-8') as f:
-                f.write(received)
-            received_count += len(received)
-            self.logger.debug(received)
+            if not (received == "xxx"):
+                print(received)
+                received_count += len(received)
+                with open(output_file, 'a', encoding='utf-8') as f:
+                    f.write(received)
 
+        print('finished received')
         return received_count
 
     def command(self, command_code:int):
