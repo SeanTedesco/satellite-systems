@@ -102,7 +102,7 @@ def parse_cmdline():
     transmit_parser.set_defaults(function=do_transmit)
 
     receive_parser = subparser.add_parser('receive', help='Receive data.')
-    receive_parser.add_argument('-f', '--filename', type=str, default="output-logs", help='The filename to save the output of the received transmission')
+    receive_parser.add_argument('-f', '--filename', type=str, default="output-logs.txt", help='The filename to save the output of the received transmission')
     receive_parser.set_defaults(function=do_receive)
 
     return parser.parse_args()

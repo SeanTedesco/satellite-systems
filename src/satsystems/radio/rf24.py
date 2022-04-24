@@ -58,14 +58,13 @@ class RF24(Radio):
             raise ValueError('No file specified for output.')
 
         while received != self.stop_receive:
-            received = self._receive_from_arduino()
+            received = self._receive_from_arduino().strip()
             if not (received == "xxx"):
                 print(received)
                 received_count += len(received)
                 with open(output_file, 'a', encoding='utf-8') as f:
                     f.write(received)
 
-        print('finished received')
         return received_count
 
     def command(self, command_code:int):
