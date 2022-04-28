@@ -1,21 +1,27 @@
+from asyncio.log import logger
+from tracemalloc import start
 from .radio import Radio
 import logging
+import time
 
 class RF24(Radio):
     
     def __init__(self, port, baud=115200, start_marker='<', end_marker='>'):
         super().__init__(port, baud, start_marker, end_marker)
 
+        logging.basicConfig(
+            format='%(asctime)s: %(levelname)s: %(message)s',
+            filename='output.log',
+            level=logging.DEBUG,
+            datefmt='%Y/%m/%d %I:%M:%S'
+        )
         self.logger = logging.getLogger(__file__)
         self.logger.setLevel(logging.DEBUG)
         self.stop_receive = 'STOP'                  # message to stop receiving messages
 
-
     def transmit(self, data:str):
         '''Send a message.
 
-        Note:
-            The "T" is required as this is what is expected by the arduino MCU.
         Params:
             data: the message to be transmitted to the other radio.
         Raises:
@@ -34,15 +40,15 @@ class RF24(Radio):
         if len(data) > 32: # max 32 bytes for a single transmission
             raise ValueError(f'string is too long, {data_string_len} is greater than 32 characters')
 
-        data_string = 't' + data_string
+        formatted_data = self._format_tx_data(data_string)
         try:
-            self._send_to_arduino(data_string)
+            self._send_to_arduino(formatted_data)
         except Exception as e:
             raise e
 
         return data_string_len
 
-    def receive(self, output_file:str):
+    def receive(self, output_file:str='output.log'):
         '''Receive a message.
 
         Params:
