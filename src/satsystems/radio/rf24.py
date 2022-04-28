@@ -64,16 +64,15 @@ class RF24(Radio):
             raise ValueError('No file specified for output.')
 
         while received != self.stop_receive:
-            received = self._receive_from_arduino().strip()
+            received = self._receive_single_message()
             if not (received == "xxx"):
                 print(received)
                 received_count += len(received)
-                with open(output_file, 'a', encoding='utf-8') as f:
-                    f.write(received)
+                self.logger.info(received)
 
         return received_count
 
-    def command(self, command_code:int):
+    def command(self, command_code):
         '''Send a command/request to the other radio, await for a response.'''
 
         # verify request code
@@ -98,3 +97,33 @@ class RF24(Radio):
         '''Transmit a beacon message.'''
 
         print('rf24 beaconing...')
+
+    def monitor(self):
+        '''Constantly listen for a signal.'''
+
+    def _receive_single_message(self, timeout:int=60):
+        '''Attempt to receive a message from the arduino.
+
+        Params:
+            - Timeout (optional): duration in which to receive a message.
+        Raises:
+            - TimeoutError: fails if no message is received from the radio.
+        Return:
+            - the stripped string sent from the arduino over serial.
+        '''
+        start_time = time.time()
+        received = 'xxx'
+        while received == 'xxx':
+            received = self._receive_from_arduino().strip()
+            if time.time() > start_time + timeout:
+                raise TimeoutError(f'did not receive message within {timeout}s!')
+
+        return received
+
+    def _format_tx_data(self, data:str):
+        '''Formart the data to what the arduino expects for transmissions.
+
+        Return:
+            - formatted data to be called with _send_to_arduino
+        '''
+        return 't' + data
