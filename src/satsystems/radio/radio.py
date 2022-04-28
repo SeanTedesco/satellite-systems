@@ -105,6 +105,10 @@ def parse_cmdline():
     receive_parser.add_argument('-f', '--filename', type=str, default="output-logs.txt", help='The filename to save the output of the received transmission')
     receive_parser.set_defaults(function=do_receive)
 
+    receive_parser = subparser.add_parser('command', help='Send a command, receive acknowledgement.')
+    receive_parser.add_argument('-c', '--command', type=str, default="smile", help='The commmand to send to the other radio')
+    receive_parser.set_defaults(function=do_command)
+
     return parser.parse_args()
 
 def do_transmit(radio, options):
@@ -114,6 +118,10 @@ def do_transmit(radio, options):
 def do_receive(radio, options):
     output = options.filename
     radio.receive(output)
+
+def do_command(radio, options):
+    cmd = options.command
+    radio.command(cmd)
 
 def main():
     from .rf24 import RF24

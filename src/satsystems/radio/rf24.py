@@ -79,8 +79,9 @@ class RF24(Radio):
         # compare received with expected checksum
         # inform user of success or faiilure  
 
-        print('rf24 commanding...')
         self.transmit(str(command_code))
+        got_back = self._receive_single_message()
+        logger.info(got_back)
 
     def stream(self, filename:str):
         '''Stream data in a file.'''
