@@ -1,7 +1,5 @@
-from asyncio.log import logger
-from tracemalloc import start
 from .radio import Radio
-import logging
+from ..logger.logger import SatelliteLogger
 import time
 
 class RF24(Radio):
@@ -9,14 +7,7 @@ class RF24(Radio):
     def __init__(self, port, baud=115200, start_marker='<', end_marker='>'):
         super().__init__(port, baud, start_marker, end_marker)
 
-        logging.basicConfig(
-            format='%(asctime)s: %(levelname)s: %(message)s',
-            filename='output.log',
-            level=logging.DEBUG,
-            datefmt='%Y/%m/%d %I:%M:%S'
-        )
-        self.logger = logging.getLogger(__file__)
-        self.logger.setLevel(logging.DEBUG)
+        self.radio_logger = SatelliteLogger.get_logger('rf24.py')
         self.stop_receive = 'STOP'                  # message to stop receiving messages
 
     def transmit(self, data:str):
@@ -66,9 +57,8 @@ class RF24(Radio):
         while received != self.stop_receive:
             received = self._receive_single_message()
             if not (received == "xxx"):
-                print(received)
                 received_count += len(received)
-                self.logger.info(received)
+                self.radio_logger.info(received)
 
         return received_count
 
@@ -86,7 +76,7 @@ class RF24(Radio):
 
         self.transmit(str(command_code))
         got_back = self._receive_single_message()
-        logger.info(got_back)
+        self.radio_logger.info(got_back)
 
     def stream(self, filename:str):
         '''Stream data in a file.'''
@@ -116,6 +106,7 @@ class RF24(Radio):
         while received == 'xxx':
             received = self._receive_from_arduino().strip()
             if time.time() > start_time + timeout:
+                self.radio_logger.warning('no message received')
                 raise TimeoutError(f'did not receive message within {timeout}s!')
 
         return received
