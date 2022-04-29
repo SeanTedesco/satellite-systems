@@ -1,4 +1,5 @@
 from .gps import Gps
+from ..logger.logger import SatelliteLogger
 
 class Grove(Gps):
     
@@ -6,5 +7,12 @@ class Grove(Gps):
         self.uid = uid 
         super().__init__(**kwargs)
 
+        self.gps_logger = SatelliteLogger.get_logger('grove.py')
+
     def get_location(self):
-        print('grove getting location...')
+        '''Get the current location of the satellite.'''
+        self.gps_logger.info('called get location')
+        self.gps_logger.debug('trying again')
+        self.gps_logger.warning("Warning message")
+        self.gps_logger.error("Error message")
+        self.gps_logger.critical("Critical message")
