@@ -1,7 +1,6 @@
 import serial
 from serial.serialutil import SerialException
 import argparse
-import serial
 import sys
 import time
 import base64
