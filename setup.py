@@ -20,7 +20,6 @@ setuptools.setup(
     install_requires=[
         'pyserial',
         'argparse',
-        'sys',
     ] + (['picamera'] if sys.platform == 'linux' else []),
     classifiers=[
         'Programming Language :: Python :: 3',
