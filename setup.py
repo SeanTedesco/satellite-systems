@@ -18,10 +18,8 @@ setuptools.setup(
     package_dir={'': 'src'},
     packages=setuptools.find_packages('src'),
     install_requires=[
-        'wheel',
         'pyserial',
         'argparse',
-        'logging',
         'sys',
     ] + (['picamera'] if sys.platform == 'linux' else []),
     classifiers=[
