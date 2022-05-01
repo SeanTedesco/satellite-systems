@@ -20,7 +20,7 @@ setuptools.setup(
     install_requires=[
         'pyserial',
         'argparse',
-    ] + (['picamera'] if sys.platform == 'linux' else []),
+    ] + (['picamera', 'RPi.GPIO', 'gpiozero'] if sys.platform == 'linux' else []),
     classifiers=[
         'Programming Language :: Python :: 3',
         'Operating System :: OS Independent',
