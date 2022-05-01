@@ -21,6 +21,8 @@ setuptools.setup(
         'wheel',
         'pyserial',
         'argparse',
+        'logging',
+        'sys',
     ] + (['picamera'] if sys.platform == 'linux' else []),
     classifiers=[
         'Programming Language :: Python :: 3',
