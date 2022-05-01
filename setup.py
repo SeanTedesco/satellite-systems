@@ -33,6 +33,7 @@ setuptools.setup(
                 'radio = satsystems.radio.radio:main',
                 'gps = satsystems.gps.gps:main',
                 'camera = satsystems.camera.camera:main',
+                'logger = satsystems.logger.logger:main',
             ],
     },
 )
