@@ -22,31 +22,29 @@ class Radio:
 
         self._wait_for_ready()
 
-
     def transmit(self, data:str):
         '''Send a message.'''
         raise NotImplementedError('Should be implemented by derived class.')
-
 
     def receive(self, output_file:str):
         '''Receive a message.'''
         raise NotImplementedError('Should be implemented by derived class.')
 
-
     def command(self, command_code:int):
         '''Send a command/request to the other radio, await for a response.'''
         raise NotImplementedError('Should be implemented by derived class.')
-
 
     def stream(self, filename:str):
         '''Stream data in a file.'''
         raise NotImplementedError('Should be implemented by derived class.')
 
-
     def beacon(self):
         '''Transmit a beacon message.'''
         raise NotImplementedError('Should be implemented by derived class.')
 
+    def monitor(self):
+        '''Constantly listen for a signal.'''
+        raise NotImplementedError('Should be implemented by derived class.')
 
     def _wait_for_ready(self):
         msg = ''
@@ -54,7 +52,6 @@ class Radio:
             msg = self._receive_from_arduino()
             if not (msg == 'xxx'):
                 print(msg)
-
 
     def _receive_from_arduino(self):
 
@@ -76,7 +73,6 @@ class Radio:
             return self._data_buffer
         else:
             return 'xxx'
-
 
     def _send_to_arduino(self, data:str):
 
@@ -105,7 +101,7 @@ def parse_cmdline():
     receive_parser.set_defaults(function=do_receive)
 
     receive_parser = subparser.add_parser('command', help='Send a command, receive acknowledgement.')
-    receive_parser.add_argument('-c', '--command', type=str, default="smile", help='The commmand to send to the other radio')
+    receive_parser.add_argument('-c', '--command', type=str, default='smile', help='The commmand to send to the other radio')
     receive_parser.set_defaults(function=do_command)
 
     return parser.parse_args()
