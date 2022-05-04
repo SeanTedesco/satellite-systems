@@ -20,12 +20,12 @@
  */
 #define CE_PIN 9
 #define CSN_PIN 10
-bool radioNumber = 1;
+bool radioNumber = 0;
 
 /******************************************************************************************************
  * DEBUG CONFIGURATION (USER INPUT REQUIRED)
  */
-bool DEBUG = true;
+bool DEBUG = false;
 
 /******************************************************************************************************
  * CONTROL FLAGS
