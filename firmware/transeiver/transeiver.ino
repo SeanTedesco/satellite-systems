@@ -160,10 +160,7 @@ void init_radio(){
         while (1) {} // hold in infinite loop
     }
 
-    if (DEBUG){
-        set_radio_number();
-    }
-
+    set_radio_number();
     radio.setPALevel(RF24_PA_LOW);  // RF24_PA_MAX is default.
     radio.enableDynamicPayloads();
     radio.enableAckPayload();
@@ -172,9 +169,13 @@ void init_radio(){
     radio.startListening();
 
     if (DEBUG) {
-        Serial.println(F("<ready: radio>"));
         radio.printDetails();
     }
+
+    Serial.print(F("<ready: "));
+    Serial.print(F("radio "));
+    Serial.print((int)radioNumber);
+    Serial.print(F(">"));
 }
 
 /******************************************************************************************************
@@ -194,14 +195,13 @@ void init_payload(){
  * @returns void
  */
 void set_radio_number(){
+    if (DEBUG) {
+        Serial.println(F("<enter radio number: '0' or '1'>"));
+    }
     char input;
-    Serial.println(F("<enter radio number: '0' or '1'>"));
     while (!Serial.available()) {}  //wait for user inputs
     input = Serial.parseInt();
     radioNumber = input == 1;
-    Serial.print(F("<radioNumber = "));
-    Serial.print((int)radioNumber);
-    Serial.println(F(">"));
 }
 
 /******************************************************************************************************
