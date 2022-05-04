@@ -1,13 +1,11 @@
 from .radio import Radio
-from ..logger.logger import SatelliteLogger
 import time
 
 class RF24(Radio):
 
-    def __init__(self, port, baud=115200, start_marker='<', end_marker='>'):
-        super().__init__(port, baud, start_marker, end_marker)
+    def __init__(self, name, port, baud=115200, start_marker='<', end_marker='>'):
+        super().__init__(name, port, baud, start_marker, end_marker)
 
-        self.radio_logger = SatelliteLogger.get_logger('rf24.py')
         self.stop_receive = 'STOP'                  # message to stop receiving messages
 
     def transmit(self, data:str):

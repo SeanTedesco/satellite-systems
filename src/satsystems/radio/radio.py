@@ -1,5 +1,6 @@
 import serial
 from serial.serialutil import SerialException
+from ..logger.logger import SatelliteLogger
 import argparse
 import sys
 import time
@@ -8,17 +9,19 @@ import base64
 class Radio:
     '''Interface class to control a radio.'''
 
-    def __init__(self, port, baud=115200, start_marker='<', end_marker='>'):
+    def __init__(self, name, port, baud=115200, start_marker='<', end_marker='>'):
         try:
             self.arduino = serial.Serial(port=port, baudrate=baud, timeout=10, rtscts=True)
         except SerialException as e:
             raise e
 
+        self._name = name
         self._start_marker = start_marker
         self._end_marker = end_marker
         self._data_buffer = ""
         self._data_started = False
         self._message_complete = False
+        self.logger = SatelliteLogger.get_logger('radio.py')
 
         self._wait_for_ready()
 
