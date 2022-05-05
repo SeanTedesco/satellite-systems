@@ -390,9 +390,12 @@ void send_to_serial(){
  * @returns the number of payloads (30 bytes) to be sent. 
  */
 uint32_t get_num_payloads(){
-  uint32_t n = atoi(serial_buffer[1]);
+  uint32_t n = atoi(serial_buffer[2]);
   uint16_t d;
   for (uint8_t i=1; i<4; i++){
+      if (i == ':'){
+          return n
+      }
     d = atoi(serial_buffer[i]);
     n = n*10 + d;
   }
@@ -430,4 +433,18 @@ void make_header(){
  */
 void slice(const char *str, char *result, size_t start, size_t end){
     strncpy(result, str + start, end - start);
+}
+
+char** split_string(char* str, char* dlm){
+    static uint8_t num_substrings = 3;
+    static char* substrings[num_substrings];
+
+    char* text = strtok(str, dlm);
+    uint8_t i = 0;
+    while (text != 0 && i < num_substrings) {
+        // A toekn was found: append it to the array of substrings
+        substrings[i++] = text;
+        text = strtok(0, dlm);
+    }
+    return substrings
 }
