@@ -90,22 +90,27 @@ char* header_data;
 /******************************************************************************************************
  * FUNCTION PROTOTYPES
  */
+// serial functions
 void init_serial(void);
 void read_from_serial(void);
 void send_to_serial(void);
 
+// radio functions
 void init_radio(void);
 void get_radio_number(void);
 void do_transmit(void);
 void do_receive(void);
 void do_stream(void);
 
+// payload functions
 void init_payload(void);
 void make_header(void);
 uint32_t get_num_payloads(void);
 char get_mode(void);
 
+// string functions
 void slice(const char *str, char *result, size_t start, size_t end);
+void split_buffer(char* str, char* dlm);
 
 /******************************************************************************************************
  * @brief arduino main setup.
