@@ -280,44 +280,50 @@ void do_receive(){
 /******************************************************************************************************
  * @brief stream payloads to the other radio.
  * @note utilizes the global serial buffer.
- * @note should be setup by receiving a header serial message, ex: <s078######>
+ * @note should be setup by receiving a header serial message, ex: <S:078:######>
  * @returns void
  */
 void do_stream(){
-  uint8_t i = 0;
-  uint8_t failures = 0;
+    uint8_t i = 0;        // index variable for counting up to the required number of payloads sent
+    uint8_t failures = 0; // radio transmits payload until too many errors occur
 
-  radio.flush_tx();
-  radio.setPayloadSize(sizeof(payload));
-  unsigned long start_timer = micros();
-  while (i < num_payloads) {
-    while (!new_serial){
-      receive_from_serial();
-    }
-    slice(serial_buffer, payload.message, 0, max_payload_length);
-    if (!radio.writeFast(&payload, sizeof(payload))) {
-      failures++;
-      radio.reUseTX();
-    } else {
-      i++;
-    }
-    if (failures >= 100) {
-      Serial.print(F("error: too many failures detected. Aborting at payload "));
-      Serial.println(payload.message);
-      break;
-    }
-  }
-  unsigned long end_timer = micros();         // end the timer
+    radio.flush_tx();                       //  clean out the TX FIFO buffer
+    radio.setPayloadSize(sizeof(payload));
+    unsigned long start_timer = micros();
 
-  if (DEBUG){
-    Serial.print(F("<time: "));
-    Serial.print(end_timer - start_timer);      // print the timer result
-    Serial.print(F(" us with "));
-    Serial.print(failures);                     // print failures detected
-    Serial.println(F(" failures detected>"));
-  }
-  // to make this example readable in the serial monitor
-  delay(10);  // slow transmissions down by 10 millisecond
+    while (i < num_payloads) {
+        while (!new_serial){
+            receive_from_serial();
+        }
+        slice(serial_buffer, payload.message, 0, max_payload_length);
+        if (DEBUG){
+            Serial.print(F("sending: "));
+            Serial.println(F(payload.message));
+        }
+        if (!radio.writeFast(&payload, sizeof(payload))) {
+            failures++;
+            radio.reUseTX();
+        } else {
+            i++;
+        }
+        if (failures >= 100) {
+            Serial.print(F("<error: too many failures detected, aborting at payload: "));
+            Serial.println(payload.message);
+            Serial.print(F(" >"));
+            break;
+        }
+    }
+    unsigned long end_timer = micros();         // end the timer
+
+    if (DEBUG){
+        Serial.print(F("<time: "));
+        Serial.print(end_timer - start_timer);      // print the timer result
+        Serial.print(F(" us with "));
+        Serial.print(failures);                     // print failures detected
+        Serial.println(F(" failures detected>"));
+    }
+    // to make this example readable in the serial monitor
+    delay(10);  // slow transmissions down by 10 millisecond
 }
 
 /******************************************************************************************************
