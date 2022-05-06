@@ -248,31 +248,29 @@ void do_transmit(){
 
 /******************************************************************************************************
  * @brief receive a payload from the other radio.
- * @note utilizes the global serial buffer.
- * @note should be setup by receiving a header serial message.
  * @returns void
  */
 void do_receive(){
     uint8_t pipe;
-    if (radio.available(&pipe)) {                             // is there a payload? get the pipe number that recieved it
+    if (radio.available(&pipe)) {                           // is there a payload? get the pipe number that recieved it
         PayloadStruct received;
-        radio.read(&received, sizeof(received));              // get incoming ACK payload
-        radio.writeAckPayload(1, &ackload, sizeof(PayloadStruct));
+        radio.read(&received, sizeof(received));                    // get incoming payload
+        radio.writeAckPayload(1, &ackload, sizeof(PayloadStruct));  // send a manual acknowledgement package
         if (DEBUG) {
-            Serial.println(F("Reception Report:"));           // print the incoming message
+            Serial.println(F("Reception Report:"));
             Serial.print(F("\t- Received Message: "));
-            Serial.println(received.message);
+            Serial.println(received.message);               // print incoming message
             Serial.print(F("\t- Response Message: "));
-            Serial.println(ackload.message);
+            Serial.println(ackload.message);                // print outgoing message
             Serial.print(F("\t- Extra Information: "));
             Serial.print(F("recieved "));
-            Serial.print(radio.getDynamicPayloadSize());          // print incoming payload size
+            Serial.print(radio.getDynamicPayloadSize());    // print incoming payload size
             Serial.print(F(" bytes on pipe "));
             Serial.println(pipe);
         } else {
             Serial.print(F("<"));
-            Serial.println(received.message);
-            Serial.print(F(">"));
+            Serial.print(received.message);
+            Serial.println(F(">"));
         }
     }
 }
