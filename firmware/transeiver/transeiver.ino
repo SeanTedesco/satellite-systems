@@ -50,6 +50,9 @@ bool clear_for_serial = false;
 // T=transmit, S=stream, R=receive (default)
 char mode = 'R';
 
+//used to control how many paylods must be streamed
+uint32_t num_payloads = 0;
+
 /******************************************************************************************************
  * GLOBAL DATA BUFFERS
  */
@@ -281,10 +284,8 @@ void do_receive(){
  * @returns void
  */
 void do_stream(){
-
   uint8_t i = 0;
   uint8_t failures = 0;
-  uint32_t num_payloads = get_num_payloads();
 
   radio.flush_tx();
   radio.setPayloadSize(sizeof(payload));
@@ -399,15 +400,7 @@ void send_to_serial(){
  * @returns the number of payloads (30 bytes) to be sent. 
  */
 uint32_t get_num_payloads(){
-  uint32_t n = atoi(serial_buffer[2]);
-  uint16_t d;
-  for (uint8_t i=1; i<4; i++){
-      if (i == ':'){
-          return n;
-      }
-    d = atoi(serial_buffer[i]);
-    n = n*10 + d;
-  }
+  uint32_t n = (uint32_t) atoi(header_payloads);
   return n;
 }
 
@@ -432,7 +425,7 @@ void make_header(){
         header_data = header_frame[2];
 
         mode = get_mode();
-        //num_payloads = get_num_payloads();
+        num_payloads = get_num_payloads();
     }
 }
 
