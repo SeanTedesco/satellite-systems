@@ -25,7 +25,7 @@ bool radioNumber = 0;
 /******************************************************************************************************
  * DEBUG CONFIGURATION (USER INPUT REQUIRED)
  */
-bool DEBUG = false;
+bool DEBUG = true;
 
 /******************************************************************************************************
  * CONTROL FLAGS
@@ -66,7 +66,7 @@ uint8_t address[][6] = {"1Node", "2Node"};
 RF24 radio(CE_PIN, CSN_PIN); // create a radio
 
 /******************************************************************************************************
- * PAYLOAD PARAMETERS
+ * PAYLOAD STRUCT
  */
 const uint16_t max_payload_length = 32;
 struct PayloadStruct {
@@ -74,6 +74,15 @@ struct PayloadStruct {
 };
 PayloadStruct payload;
 PayloadStruct ackload;
+
+/******************************************************************************************************
+ * HEADER FRAME STRUCT
+ */
+#define num_substrings 3
+char* header_frame[num_substrings];
+char* header_mode;
+char* header_payloads;
+char* header_data;
 
 /******************************************************************************************************
  * FUNCTION PROTOTYPES
@@ -115,7 +124,7 @@ void setup() {
 void loop() {
   receive_from_serial();
   if (new_serial){
-    mode = get_mode();
+    make_header();
     new_serial = false;
   }
   if (mode == 'T'){
@@ -173,9 +182,9 @@ void init_radio(){
     }
 
     Serial.print(F("<ready: "));
-    Serial.print(F("radio "));
+    Serial.print(F("radio"));
     Serial.print((int)radioNumber);
-    Serial.print(F(">"));
+    Serial.println(F(">"));
 }
 
 /******************************************************************************************************
@@ -188,20 +197,6 @@ void init_payload(){
   // acknowledgement packet
   memcpy(ackload.message, "ACK", 4);
   radio.writeAckPayload(1, &ackload, sizeof(PayloadStruct));
-}
-
-/******************************************************************************************************
- * @brief manually set the unique radio number for this radio. Number can be either 0 or 1. 
- * @returns void
- */
-void set_radio_number(){
-    if (DEBUG) {
-        Serial.println(F("<enter radio number: '0' or '1'>"));
-    }
-    char input;
-    while (!Serial.available()) {}  //wait for user inputs
-    input = Serial.parseInt();
-    radioNumber = input == 1;
 }
 
 /******************************************************************************************************
@@ -325,6 +320,20 @@ void do_stream(){
 }
 
 /******************************************************************************************************
+ * @brief manually set the unique radio number for this radio. Number can be either 0 or 1. 
+ * @returns void
+ */
+void set_radio_number(){
+    if (DEBUG) {
+        Serial.println(F("<enter radio number: '0' or '1'>"));
+    }
+    char input;
+    while (!Serial.available()) {}  //wait for user inputs
+    input = Serial.parseInt();
+    radioNumber = input == 1;
+}
+
+/******************************************************************************************************
  * @brief gets the expected mode of the radio from the serial buffer. The mode character (R, S, T)
  * should always be the first character in the serial buffer when receiving a header message. 
  * @returns character representing mode (R (defualt), S, or T)
@@ -332,7 +341,7 @@ void do_stream(){
 char get_mode(){
   char rc = 'R';
   if (new_serial){
-    rc = toupper(serial_buffer[0]);
+    rc = toupper(header_mode[0]);
   }
   return rc;
 }
@@ -394,7 +403,7 @@ uint32_t get_num_payloads(){
   uint16_t d;
   for (uint8_t i=1; i<4; i++){
       if (i == ':'){
-          return n
+          return n;
       }
     d = atoi(serial_buffer[i]);
     n = n*10 + d;
@@ -411,40 +420,46 @@ uint32_t get_num_payloads(){
  * configurations (such as modes).
  * @returns void
  * 
- * |***         HEADER FORMAT (30 BYTES)        ***|
- * |   1    |         2-4             |   5-30     |
- * | T/S/R  | EXPECTED TRANSMISSIONS  | EXTRA DATA |
+ * |******************* HEADER FORMAT *********************|
+ * < T/S/R  : NUM of EXPECTED TRANSMISSIONS  : EXTRA DATA >
+ * |*******************************************************|
  */
 void make_header(){
-  if (new_serial){
-    mode = get_mode();
-    slice(serial_buffer, payload.message, 4, max_payload_length);
-  }
+    if (new_serial){
+        split_buffer(serial_buffer, ":");
+        header_mode = header_frame[0];
+        header_payloads = header_frame[1];
+        header_data = header_frame[2];
+
+        mode = get_mode();
+        //num_payloads = get_num_payloads();
+    }
 }
 
 /******************************************************************************************************
  * @brief create a substring from str pointer and place into result pointer,
  *  incusive to both start and end character index.
- * @param str - pointer to the string to be sliced.
- * @param result - pointer to the sub-string created from the slice.
- * @param start - index of str that begins the slice (inclusive).
- * @param end - index of str that ends the slivce (inclusive).
+ * @param   str     - pointer to the string to be sliced.
+ * @param   result  - pointer to the sub-string created from the slice.
+ * @param   start   - index of str that begins the slice (inclusive).
+ * @param   end     - index of str that ends the slivce (inclusive).
  * @returns void 
  */
 void slice(const char *str, char *result, size_t start, size_t end){
     strncpy(result, str + start, end - start);
 }
 
-char** split_string(char* str, char* dlm){
-    static uint8_t num_substrings = 3;
-    static char* substrings[num_substrings];
-
+/******************************************************************************************************
+ * @brief splits a string into multiple substrings seperated by the given deliminator.
+ * @param   str   - the string to be split.
+ * @param   dlm   - the string of a deliminator sequence
+ * @returns void
+ */
+void split_buffer(char* str, char* dlm){
     char* text = strtok(str, dlm);
     uint8_t i = 0;
     while (text != 0 && i < num_substrings) {
-        // A toekn was found: append it to the array of substrings
-        substrings[i++] = text;
+        header_frame[i++] = text;
         text = strtok(0, dlm);
     }
-    return substrings
 }
