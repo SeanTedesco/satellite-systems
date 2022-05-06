@@ -21,9 +21,11 @@ class Radio:
         self._data_buffer = ""
         self._data_started = False
         self._message_complete = False
-        self.logger = SatelliteLogger.get_logger('radio.py')
+        self.logger = SatelliteLogger.get_logger('radio')
 
         self.__wait_for_msg('ready: serial')
+        self.__set_uid()
+        self.__wait_for_msg('ready: radio')
 
     def transmit(self, data:str):
         '''Send a message.'''
@@ -49,9 +51,17 @@ class Radio:
         '''Constantly listen for a signal.'''
         raise NotImplementedError('Should be implemented by derived class.')
 
-    def __wait_for_msg(self, msg:str='ready: serial'):
+    def __set_uid(self):
+        radio_number = str(self._uid)
+        self._send_to_arduino(radio_number)
+
+    def __wait_for_msg(self, msg:str='ready: serial', timeout:int=10):
+        start_time = time.time()
         incoming = ''
         while incoming.find(msg) == -1:
+            if time.time() > start_time + timeout:
+                self.logger.warning(f'no message received, expected: {msg}')
+                break
             incoming = self._receive_from_arduino()
             if not (incoming == 'xxx'):
                 self.logger.info(incoming)

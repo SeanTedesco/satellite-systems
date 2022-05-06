@@ -52,7 +52,7 @@ class RF24(Radio):
         while received == 'xxx':
             received = self._receive_from_arduino().strip()
             if time.time() > start_time + timeout:
-                self.radio_logger.warning('no message received')
+                self.logger.warning('no message received')
                 break
 
         return received
