@@ -3,8 +3,8 @@ import time
 
 class RF24(Radio):
 
-    def __init__(self, name, port, baud=115200, start_marker='<', end_marker='>'):
-        super().__init__(name, port, baud, start_marker, end_marker)
+    def __init__(self, uid, port, baud=115200, start_marker='<', end_marker='>'):
+        super().__init__(uid, port, baud, start_marker, end_marker)
 
         self.stop_receive = 'STOP'                  # message to stop receiving messages
 
