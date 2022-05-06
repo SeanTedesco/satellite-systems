@@ -9,13 +9,13 @@ import base64
 class Radio:
     '''Interface class to control a radio.'''
 
-    def __init__(self, name, port, baud=115200, start_marker='<', end_marker='>'):
+    def __init__(self, uid, port, baud=115200, start_marker='<', end_marker='>'):
         try:
             self.arduino = serial.Serial(port=port, baudrate=baud, timeout=10, rtscts=True)
         except SerialException as e:
             raise e
 
-        self._name = name
+        self._uid = uid
         self._start_marker = start_marker
         self._end_marker = end_marker
         self._data_buffer = ""
@@ -92,6 +92,7 @@ class Radio:
 def parse_cmdline():
     parser = argparse.ArgumentParser(description='Control Radio Module.')
     parser.add_argument('-p', '--port', metavar='port', type=str, help='The port the radio is connected to.')
+    parser.add_argument('-i', '--uid', metavar='uid', type=int, help='The unique identification number of the connected radio.')
 
     subparser = parser.add_subparsers()
 
@@ -125,7 +126,7 @@ def main():
     from .rf24 import RF24
 
     options = parse_cmdline()
-    radio = RF24(port=options.port)
+    radio = RF24(uid=options.uid, port=options.port)
     options.function(radio, options)
 
 if __name__ == '__main__':
