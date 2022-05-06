@@ -426,6 +426,17 @@ void make_header(){
 
         mode = get_mode();
         num_payloads = get_num_payloads();
+        slice(header_data, serial_buffer, 0, max_payload_length)
+
+        if (DEBUG){
+            Serial.print(F("Received Header Frame!"));
+            Serial.print(F("\t- mode: "));
+            Serial.println(mode);
+            Serial.print(F("\t- num payloads: "));
+            Serial.println(num_payloads);
+            Serial.print(F("\t- data: "));
+            Serial.println(serial_buffer);
+        }
     }
 }
 
@@ -435,7 +446,7 @@ void make_header(){
  * @param   str     - pointer to the string to be sliced.
  * @param   result  - pointer to the sub-string created from the slice.
  * @param   start   - index of str that begins the slice (inclusive).
- * @param   end     - index of str that ends the slivce (inclusive).
+ * @param   end     - index of str that ends the slice (inclusive).
  * @returns void 
  */
 void slice(const char *str, char *result, size_t start, size_t end){
