@@ -111,6 +111,7 @@ char get_mode(void);
 // string functions
 void slice(const char *str, char *result, size_t start, size_t end);
 void split_buffer(char* str, char* dlm);
+void copy(char* src, char* dst);
 
 /******************************************************************************************************
  * @brief arduino main setup.
@@ -216,7 +217,7 @@ void init_payload(){
 void do_transmit(){
     radio.flush_tx();
     unsigned long start_timer = micros();                             // start the timer
-    slice(serial_buffer, payload.message, 1, max_payload_length);
+    slice(serial_buffer, payload.message, 0, max_payload_length);
     bool report = radio.write(&payload, sizeof(payload));             // transmit & save the report
     unsigned long end_timer = micros();                               // end the timer
     if (!report) {
@@ -298,10 +299,11 @@ void do_stream(){
         while (!new_serial){
             receive_from_serial();
         }
+        new_serial = false;
         slice(serial_buffer, payload.message, 0, max_payload_length);
         if (DEBUG){
             Serial.print(F("sending: "));
-            Serial.println(F(payload.message));
+            Serial.println(payload.message);
         }
         if (!radio.writeFast(&payload, sizeof(payload))) {
             failures++;
@@ -435,10 +437,10 @@ void make_header(){
 
         mode = get_mode();
         num_payloads = get_num_payloads();
-        slice(header_data, serial_buffer, 0, max_payload_length)
+        copy(header_data, serial_buffer);
 
         if (DEBUG){
-            Serial.print(F("Received Header Frame!"));
+            Serial.println(F("Received Header Frame!"));
             Serial.print(F("\t- mode: "));
             Serial.println(mode);
             Serial.print(F("\t- num payloads: "));
@@ -452,14 +454,14 @@ void make_header(){
 /******************************************************************************************************
  * @brief create a substring from str pointer and place into result pointer,
  *  incusive to both start and end character index.
- * @param   str     - pointer to the string to be sliced.
- * @param   result  - pointer to the sub-string created from the slice.
+ * @param   str     - pointer to the string to be sliced (source).
+ * @param   dst     - pointer to the sub-string created from the slice (destination).
  * @param   start   - index of str that begins the slice (inclusive).
  * @param   end     - index of str that ends the slice (inclusive).
  * @returns void 
  */
-void slice(const char *str, char *result, size_t start, size_t end){
-    strncpy(result, str + start, end - start);
+void slice(const char *src, char *dst, size_t start, size_t end){
+    strncpy(dst, src + start, end - start);
 }
 
 /******************************************************************************************************
@@ -475,4 +477,8 @@ void split_buffer(char* str, char* dlm){
         header_frame[i++] = text;
         text = strtok(0, dlm);
     }
+}
+
+void copy(char* src, char* dst){
+  memcpy(dst, src, strlen(src)+1);
 }
