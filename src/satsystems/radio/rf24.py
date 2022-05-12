@@ -7,8 +7,14 @@ class RF24(Radio):
         super().__init__(uid, port, baud, start_marker, end_marker)
 
         self.stop_receive = 'STOP'                  # message to stop receiving messages
+        self.supported_commands = [
+            'smile',
+            'picture',
+            'strobe',
+        ]
+        self.supported_modes = ['T', 'S', 'R']
 
-    def transmit(self, data:str):
+    def transmit(self, data:str, mode='T'):
         '''Send a single message.
 
         Params:
@@ -29,11 +35,11 @@ class RF24(Radio):
         if len(data) > 32: # max 32 bytes for a single transmission
             raise ValueError(f'string is too long, {data_string_len} is greater than 32 characters')
 
-        formatted_data = self._format_tx_data(data_string)
+        formatted_data = self._format_tx_data(mode, 1, data_string)
         try:
             self._send_to_arduino(formatted_data)
         except Exception as e:
-            self.radio_logger.warning(f'failed to transmit: {formatted_data}')
+            self.logger.warning(f'failed to transmit: {formatted_data}')
             raise e
 
         return data_string_len
@@ -57,7 +63,7 @@ class RF24(Radio):
 
         return received
 
-    def command(self, command_code:str):
+    def command(self, command:str):
         '''Send a command/request to the other radio, await for a response.'''
 
         # verify request code
@@ -69,14 +75,18 @@ class RF24(Radio):
         # compare received with expected checksum
         # inform user of success or faiilure  
 
-        self.transmit(str(command_code))
-        self.radio_logger.info(f'transmitted command: {command_code}')
+        self.transmit(command)
+        self.logger.info(f'transmitted command: {command}')
         got_back = self.receive()
         if got_back == 'xxx':
-            self.radio_logger.info(f'failed to receive acknowledgement')
+            self.logger.warning(f'failed to receive acknowledgement')
 
     def stream(self, filename:str):
-        '''Stream data in a file.'''
+        if not filename.strip():
+            raise FileNotFoundError('No file specified for output monitoring.')
+
+        with open(filename, mode='r', encoding='utf8') as file:
+            line = file.readline
 
         print('rf24 streaming...')
 
@@ -107,10 +117,14 @@ class RF24(Radio):
 
         return received_count
 
-    def _format_tx_data(self, data:str):
+    def _format_tx_data(self, mode:str, num_payloads:int, data:str):
         '''Formart the data to what the arduino expects for transmissions.
 
         Return:
             - formatted data to be called with _send_to_arduino
         '''
-        return 't' + data
+        mode = mode.upper()
+        if mode not in self.supported_modes:
+            raise IndexError(f'Using unsupported mode: {mode}, "T", "S", or "R" are expected.')
+        
+        return mode + ':' + str(num_payloads) + ':' + data

@@ -35,7 +35,7 @@ class Radio:
         '''Receive a message.'''
         raise NotImplementedError('Should be implemented by derived class.')
 
-    def command(self, command_code:int):
+    def command(self, command:str):
         '''Send a command/request to the other radio, await for a response.'''
         raise NotImplementedError('Should be implemented by derived class.')
 
