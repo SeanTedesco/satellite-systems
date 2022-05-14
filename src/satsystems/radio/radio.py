@@ -110,13 +110,17 @@ def parse_cmdline():
     transmit_parser.add_argument('-d', '--data', type=str, help='The string of data to be transmitted.')
     transmit_parser.set_defaults(function=do_transmit)
 
-    receive_parser = subparser.add_parser('receive', help='Receive data.')
-    receive_parser.add_argument('-f', '--filename', type=str, default="output-logs.txt", help='The filename to save the output of the received transmission')
-    receive_parser.set_defaults(function=do_receive)
+    monitor_parser = subparser.add_parser('monitor', help='Monitor incoming data until "STOP" is received.')
+    monitor_parser.add_argument('-f', '--filename', type=str, default='output-logs.txt', help='The filename to save the incoming data.')
+    monitor_parser.set_defaults(function=do_monitor)
 
-    receive_parser = subparser.add_parser('command', help='Send a command, receive acknowledgement.')
-    receive_parser.add_argument('-c', '--command', type=str, default='smile', help='The commmand to send to the other radio')
-    receive_parser.set_defaults(function=do_command)
+    command_parser = subparser.add_parser('command', help='Send a command, receive acknowledgement.')
+    command_parser.add_argument('-c', '--command', type=str, default='smile', help='The commmand to send to the other radio')
+    command_parser.set_defaults(function=do_command)
+
+    stream_parser = subparser.add_parser('stream', help='Stream a file to another radio.')
+    stream_parser.add_argument('-f', '--filename', type=str, default='data/test-data.txt', help='The full path of the text file to be streamed.')
+    stream_parser.set_defaults(function=do_stream)
 
     return parser.parse_args()
 
@@ -124,13 +128,17 @@ def do_transmit(radio, options):
     data = options.data
     radio.transmit(data)
 
-def do_receive(radio, options):
-    output = options.filename
-    radio.receive(output)
+def do_monitor(radio, options):
+    filename = options.filename
+    radio.monitor(filename)
 
 def do_command(radio, options):
     cmd = options.command
     radio.command(cmd)
+
+def do_stream(radio, options):
+    input_stream = options.filename
+    radio.stream(input_stream)
 
 def main():
     from .rf24 import RF24
