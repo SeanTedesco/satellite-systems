@@ -8,6 +8,7 @@ __pycache__/
 
 # Log Files
 *.log
+*output-logs*
 
 # Distribution / packaging
 .Python
