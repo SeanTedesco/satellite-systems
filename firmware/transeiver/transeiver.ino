@@ -25,7 +25,7 @@ bool radioNumber = 0;
 /******************************************************************************************************
  * DEBUG CONFIGURATION (USER INPUT REQUIRED)
  */
-bool DEBUG = true;
+bool DEBUG = false;
 
 /******************************************************************************************************
  * CONTROL FLAGS
@@ -122,7 +122,7 @@ void setup() {
     init_radio();
     init_payload();
     if (DEBUG) {
-        Serial.println(F("Enter '<t message>' to begin transmitting to the other radio!\n"));
+        Serial.println(F("Enter '<t:1:message>' to begin transmitting to the other radio!\n"));
     }
 }
 
