@@ -46,6 +46,10 @@ bool new_serial = false;
 // true = send data to serial port, false = no serial data to send
 bool clear_for_serial = false;
 
+// global flag to control if the radio should respond to incoming receptions
+// true = send ACK payloads, false = do not sent ACK payloads
+bool send_ack = true;
+
 // used to control the action that the transeiver will perform
 // T=transmit, S=stream, R=receive (default)
 char mode = 'R';
@@ -261,7 +265,9 @@ void do_receive(){
     if (radio.available(&pipe)) {                           // is there a payload? get the pipe number that recieved it
         PayloadStruct received;
         radio.read(&received, sizeof(received));                    // get incoming payload
-        radio.writeAckPayload(1, &ackload, sizeof(PayloadStruct));  // send a manual acknowledgement package
+        if (send_ack){
+            radio.writeAckPayload(1, &ackload, sizeof(PayloadStruct));  // send a manual acknowledgement package
+        }
         if (DEBUG) {
             Serial.println(F("Reception Report:"));
             Serial.print(F("\t- Received Message: "));
@@ -479,6 +485,12 @@ void split_buffer(char* str, char* dlm){
     }
 }
 
+/******************************************************************************************************
+ * @brief copies the source string into the destination string.
+ * @param   src   - the input string.
+ * @param   dst   - the output string.
+ * @returns void
+ */
 void copy(char* src, char* dst){
   memcpy(dst, src, strlen(src)+1);
 }
