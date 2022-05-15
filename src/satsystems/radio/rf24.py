@@ -12,6 +12,7 @@ class RF24(Radio):
             'smile',
             'picture',
             'strobe',
+            'receive_stream',
         ]
         self.supported_modes = ['T', 'S', 'R']
         self._command_flag = ''
@@ -54,10 +55,31 @@ class RF24(Radio):
         if not filename.strip():
             raise FileNotFoundError('No file specified for output monitoring.')
 
+        """get the metadata of what is to be streamed"""
         num_characters = self._file_length(filename)
-        self.logger.debug(f'reading {num_characters} number of characters from file {filename}')
-        #with open(filename, mode='r', encoding='utf8') as file:2
-        #    line = file.readline()
+        num_payloads = int(num_characters / 32)+1 # max number of characters that can be sent with the RF24 radios
+        self.logger.debug(f'reading {num_characters} number of characters / {num_payloads} payloads from file {filename}')
+
+        """transmit a header frame for the stream"""
+        formatted_data = self._format_tx_data('s', num_payloads, 'receive_stream')
+        try:
+            self._send_to_arduino(formatted_data)
+        except Exception as e:
+            self.logger.error(f'failed to transmit: {formatted_data}')
+            raise e
+
+        """begin the stream"""
+        with open(filename, mode='r', encoding='utf8') as file:
+            lines = file.read()
+            start = 0
+            stop = 31
+            for i in range(num_payloads):
+                to_send = lines[start:stop]
+                self.logger.debug(f'streaming: {to_send}')
+                self._send_to_arduino(to_send)
+                start = stop
+                stop = start + 31
+                time.sleep(0.001) # do not comment out else packets will be dropped
 
     def beacon(self, status:str='healthy', pulse_count:int=10):
         '''Transmit a beacon message.'''
@@ -87,7 +109,7 @@ class RF24(Radio):
                 self.logger.info(f'received: {received}')
                 if received in self.supported_commands:
                     self.command_flag = received
-                    self.logger.info(f'raising flag for command: {received}')
+                    self.logger.debug(f'raising flag for command: {received}')
 
         return received_count
 
