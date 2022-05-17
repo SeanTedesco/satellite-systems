@@ -64,7 +64,7 @@ class Radio:
                 break
             incoming = self._receive_from_arduino()
             if not (incoming == 'xxx'):
-                self.logger.info(incoming)
+                self.logger.debug(incoming)
 
     def _receive_from_arduino(self):
 
