@@ -12,8 +12,8 @@
  * INCLUDES
  */
 #include <SPI.h>
-#include "printf.h"
 #include "RF24.h"
+#include "printf.h"
 
 /******************************************************************************************************
  * HARDWARE CONFIGURATION (USER INPUT REQUIRED)
@@ -30,25 +30,13 @@ bool DEBUG = false;
 /******************************************************************************************************
  * CONTROL FLAGS
  */
-// global flag to control flow of data from radio
-// true = received payload data, false = no new payload data
-bool new_payload = false;
-
-// global flag to control flow of data to radio
-// true = transmit payload data, false = no payload data to transmit
-bool clear_for_radio = false;
-
 // global flag to control flow of data from serial port
 // true = received serial data, false = no new serial data
 bool new_serial = false;
 
-// global flag to control flow of data to serial port
-// true = send data to serial port, false = no serial data to send
-bool clear_for_serial = false;
-
 // global flag to control if the radio should respond to incoming receptions
 // true = send ACK payloads, false = do not sent ACK payloads
-bool send_ack = true;
+bool send_ack = false;
 
 // used to control the action that the transeiver will perform
 // T=transmit, S=stream, R=receive (default)
@@ -262,10 +250,10 @@ void do_transmit(){
  */
 void do_receive(){
     uint8_t pipe;
-    if (radio.available(&pipe)) {                           // is there a payload? get the pipe number that recieved it
+    if (radio.available(&pipe)) {
         PayloadStruct received;
-        radio.read(&received, sizeof(received));                    // get incoming payload
-        if (send_ack){
+        radio.read(&received, sizeof(received));
+        if (send_ack) {
             radio.writeAckPayload(1, &ackload, sizeof(PayloadStruct));  // send a manual acknowledgement package
         }
         if (DEBUG) {
