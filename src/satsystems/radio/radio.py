@@ -11,7 +11,7 @@ class Radio:
 
     def __init__(self, uid, port, baud=115200, start_marker='<', end_marker='>'):
         try:
-            self.arduino = serial.Serial(port=port, baudrate=baud, timeout=10, rtscts=True)
+            self._arduino = serial.Serial(port=port, baudrate=baud, timeout=10, rtscts=True)
         except SerialException as e:
             raise e
 
@@ -68,8 +68,8 @@ class Radio:
 
     def _receive_from_arduino(self):
 
-        while self.arduino.inWaiting() > 0 and self._message_complete == False:
-            x = self.arduino.read().decode('utf-8')  # decode needed for Python3
+        while self._arduino.inWaiting() > 0 and self._message_complete == False:
+            x = self._arduino.read().decode('utf-8')  # decode needed for Python3
 
             if self._data_started == True:
                 if x != self._end_marker:
@@ -92,9 +92,9 @@ class Radio:
         stringWithMarkers = self._start_marker
         stringWithMarkers += data
         stringWithMarkers += self._end_marker
-        self.arduino.flush()
+        self._arduino.flush()
         try:
-            self.arduino.write(stringWithMarkers.encode('utf-8'))
+            self._arduino.write(stringWithMarkers.encode('utf-8'))
         except Exception as e:
             raise e
 
