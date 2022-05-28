@@ -7,83 +7,28 @@ class RF24(Radio):
     def __init__(self, uid, port, baud=115200, start_marker='<', end_marker='>'):
         super().__init__(uid, port, baud, start_marker, end_marker)
 
-        self.stop_receive = 'STOP'                  # message to stop receiving messages
-        self.supported_commands = [
-            'smile',
-            'picture',
-            'strobe',
-            'receive_stream',
-        ]
-        self.supported_modes = ['T', 'S', 'R']
+        self.supported_modes = ['T', 'S', 'R']      # transmit, stream, receive
         self.logger.info(f'radio {uid} booted')
 
-    def command(self, command:str):
-        '''Send a command/request to the other radio, await for a response.'''
+    def transmit(self, data:str):
+        '''Send a string of characters to the other radio, await for a response.
 
-        if command not in self.supported_commands:
-            raise ValueError(f'command: {command} is not supported.')
+        Params:
+            - data: 32 characters (string or bytes) to send.
+        '''
 
-        self._transmit_header(command)
-        self.logger.debug(f'transmitted command: {command}')
-        got_back = self._receive()
+        self._transmit_header(data)
+        self.logger.debug(f'transmitted command: {data}')
+        got_back = self.receive()
         if got_back == 'xxx':
             self.logger.warning(f'failed to receive acknowledgement')
 
-    def stream(self, filename:str):
-        if not filename.strip():
-            raise FileNotFoundError('No file specified to be streamed.')
-        num_characters = self._file_length(filename)
-        num_payloads = int(num_characters / 32) + 1 # max number of characters that can be sent with the RF24 radios is 32
-        self.logger.debug(f'reading {num_characters} number of characters / ({num_payloads} payloads) from file: {filename}')
-        self._transmit_header('receive_stream', 's', num_payloads)
-        with open(filename, mode='r', encoding='utf8') as file:
-            lines = file.read()
-            start = 0
-            stop = 31
-            for i in range(num_payloads):
-                to_send = lines[start:stop]
-                self.logger.debug(f'streaming: {to_send}')
-                self._transmit_raw(to_send)
-                start = stop + 1
-                stop = start + 31
-                time.sleep(0.001) # do not comment out else packets will be dropped
-
-    def beacon(self, status:str='healthy', pulse_count:int=10):
-        '''Transmit a beacon message.'''
-
-        for i in range(pulse_count):
-            self._transmit_header('VA3TFO')
-            time.sleep(1)
-            self._transmit_header(status)
-            time.sleep(1)
-
-    def monitor(self, filename:str):
-        '''Constantly listen for a signal until a command is received.
-
-        Return: one of the commands in the list of supported commands.
-        '''
-
-        received = 'xxx'
-
-        if not filename.strip():
-            raise FileNotFoundError('No file specified for output monitoring.')
-
-        while received != self.stop_receive:
-            received = self._receive()
-            if not (received == 'xxx'):
-                self.logger.info(f'received: {received}')
-                if received in self.supported_commands:
-                    self.logger.debug(f'raising flag for command: {received}')
-                    return received
-
-    def receive_stream():
-        pass
-
-    def _receive(self, timeout:float=60.0):
-        '''Attempt to receive a single message from the arduino.
+    def receive(self, timeout:float=60.0):
+        '''Attempt to receive a single message from the other radio.
 
         Params:
-            - Timeout (optional): duration in which to receive a message.
+            - timeout (optional): duration in which to receive a message.
+
         Return:
             - if received, the stripped string sent from the arduino over serial.
             - if not received, 'xxx'
@@ -97,6 +42,75 @@ class RF24(Radio):
                 break
 
         return received
+
+    def stream(self, filename:str):
+        '''
+        Stream a file to the other radio.
+
+        Params:
+            - filename: the file to be transmitted.
+        '''
+        if not filename.strip():
+            raise FileNotFoundError('No file specified to be streamed.')
+
+        # extra the meta data from the file to be sent
+        num_characters = self._file_length(filename)
+        num_payloads = int(num_characters / 32) + 1 # max number of characters that can be sent with the RF24 radios is 32
+        self.logger.debug(f'reading {num_characters} number of characters / ({num_payloads} payloads) from file: {filename}')
+
+        self._transmit_header('receive_stream', 's', num_payloads)
+        time.sleep(1)
+        with open(filename, mode='r', encoding='utf8') as file:
+            lines = file.read()
+            start = 0
+            stop = 31
+            for i in range(num_payloads):
+                to_send = lines[start:stop]
+                self.logger.debug(f'streaming: {to_send}')
+                self._transmit_raw(to_send)
+                start = stop + 1
+                stop = start + 31
+                time.sleep(0.001) # do not comment out else packets will be dropped
+        time.sleep(1)
+        self._transmit_header('stop_stream')
+
+    def monitor(self, filename:str, stop_message:str='STOP'):
+        '''Constantly listen for a signal until a certian message is received.
+
+        Params:
+            - stop_message: the message to stop the monitoring.
+            - filename: specify where to save a stream if one is received
+                during the monitoring.
+        '''
+        received = 'xxx'
+        while received != stop_message:
+            received = self.receive()
+
+            if received == 'receive_stream':
+                self._receive_stream(filename)
+
+            if not (received == 'xxx'):
+                self.logger.info(f'received: {received}')
+
+    def beacon(self, status:str='healthy', pulse_count:int=10):
+        '''Transmit a beacon message.'''
+
+        for i in range(pulse_count):
+            self._transmit_header('VA3TFO')
+            time.sleep(1)
+            self._transmit_header(status)
+            time.sleep(1)
+
+    def _receive_stream(self, filename:str):
+        '''
+        Receive a streamed file from another radio.
+        '''
+        received = 'xxx'
+        while received != 'stop_stream':
+            if not (received == 'xxx'):
+                with open(filename, mode='a', encoding='utf8') as file:
+                    file.write(received)
+            received = self.receive()
 
     def _transmit_raw(self, data:str):
         '''Transmit 32 characters to the radio. No formatting for raw transmission.
@@ -148,7 +162,7 @@ class RF24(Radio):
         if len(data) > 32: # max 32 bytes for a single transmission
             raise ValueError(f'string is too long, {data_string_len} is greater than 32 characters')
 
-        formatted_data = self.__format_tx_header(mode, num_payloads, data_string)
+        formatted_data = self._format_header(mode, num_payloads, data_string)
         try:
             self._send_to_arduino(formatted_data)
         except Exception as e:
@@ -157,7 +171,7 @@ class RF24(Radio):
 
         return data_string_len
 
-    def __format_tx_header(self, mode:str, num_payloads:int, data:str):
+    def _format_header(self, mode:str, num_payloads:int, data:str):
         '''Formart the data to what the arduino expects for transmissions.
 
         Return:
