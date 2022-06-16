@@ -18,10 +18,11 @@ class RF24(Radio):
         '''
 
         self._transmit_header(data)
-        self.logger.debug(f'transmitted command: {data}')
+        self.logger.debug(f'transmitted: {data}')
         got_back = self.receive()
         if got_back == 'xxx':
             self.logger.warning(f'failed to receive acknowledgement')
+        self.logger.debug(f'received in return: {got_back}')
 
     def receive(self, timeout:float=60.0):
         '''Attempt to receive a single message from the other radio.
@@ -56,7 +57,7 @@ class RF24(Radio):
         # extra the meta data from the file to be sent
         num_characters = self._file_length(filename)
         num_payloads = int(num_characters / 32) + 1 # max number of characters that can be sent with the RF24 radios is 32
-        self.logger.debug(f'reading {num_characters} number of characters / ({num_payloads} payloads) from file: {filename}')
+        self.logger.debug(f'reading {num_characters} characters ({num_payloads} payloads) from file: {filename}')
 
         self._transmit_header('receive_stream', 's', num_payloads)
         time.sleep(1)
@@ -87,12 +88,14 @@ class RF24(Radio):
             received = self.receive()
 
             if received == 'receive_stream':
+                self.logger.debug('receiving a stream')
                 self._receive_stream(filename)
+                self.logger.debug('ending a stream')
 
             if not (received == 'xxx'):
                 self.logger.info(f'received: {received}')
 
-    def beacon(self, status:str='healthy', pulse_count:int=10):
+    def beacon(self, status:str='healthy', keep_listening=False, pulse_count:int=10):
         '''Transmit a beacon message.'''
 
         for i in range(pulse_count):
@@ -129,7 +132,7 @@ class RF24(Radio):
         if not data_string: # must not be an empty string
             raise ValueError('passed in an empty string!')
 
-        if len(data) > 32: # max 32 bytes for a single transmission
+        if data_string_len > 32: # max 32 bytes for a single transmission
             raise ValueError(f'string is too long, {data_string_len} is greater than 32 characters')
 
         try:

@@ -35,10 +35,6 @@ class Radio:
         '''Receive a message.'''
         raise NotImplementedError('Should be implemented by derived class.')
 
-    def command(self, command:str):
-        '''Send a command/request to the other radio, await for a response.'''
-        raise NotImplementedError('Should be implemented by derived class.')
-
     def stream(self, filename:str):
         '''Stream data in a file.'''
         raise NotImplementedError('Should be implemented by derived class.')
@@ -52,6 +48,8 @@ class Radio:
         raise NotImplementedError('Should be implemented by derived class.')
 
     def __set_uid(self):
+        if self._uid not in [0, 1]:
+            raise ValueError(f'uid must be 0 or 1, not {self._uid}')
         radio_number = str(self._uid)
         self._send_to_arduino(radio_number)
 
@@ -114,9 +112,10 @@ def parse_cmdline():
     monitor_parser.add_argument('-f', '--filename', type=str, default='output-logs.txt', help='The filename to save the incoming data.')
     monitor_parser.set_defaults(function=do_monitor)
 
-    command_parser = subparser.add_parser('command', help='Send a command, receive acknowledgement.')
-    command_parser.add_argument('-c', '--command', type=str, default='smile', help='The commmand to send to the other radio')
-    command_parser.set_defaults(function=do_command)
+    beacon_parser = subparser.add_parser('beacon', help='Send out a beacon signal.')
+    beacon_parser.add_argument('-s', '--status', type=str, default='healthy', help='The status of the satellite.')
+    beacon_parser.add_argument('-k', '--keep-listening', action='store_true', help='The satellite listens for a response after the beacon.')
+    beacon_parser.set_defaults(function=do_beacon)
 
     stream_parser = subparser.add_parser('stream', help='Stream a file to another radio.')
     stream_parser.add_argument('-f', '--filename', type=str, default='data/test-data.txt', help='The full path of the text file to be streamed.')
@@ -132,9 +131,10 @@ def do_monitor(radio, options):
     filename = options.filename
     radio.monitor(filename)
 
-def do_command(radio, options):
-    cmd = options.command
-    radio.command(cmd)
+def do_beacon(radio, options):
+    stats = options.status
+    keep_listening = options.keep_listening
+    radio.beacon(stats, keep_listening)
 
 def do_stream(radio, options):
     input_stream = options.filename
