@@ -91,8 +91,7 @@ class RF24(Radio):
                 self.logger.debug('receiving a stream')
                 self._receive_stream(filename)
                 self.logger.debug('ending a stream')
-
-            if not (received == 'xxx'):
+            elif not (received == 'xxx'):
                 self.logger.info(f'received: {received}')
 
     def beacon(self, status:str='healthy', keep_listening=False, pulse_count:int=10):
