@@ -285,6 +285,9 @@ void do_stream(){
     uint8_t i = 0;        // index variable for counting up to the required number of payloads sent
     uint8_t failures = 0; // radio transmits payload until too many errors occur
 
+    slice(serial_buffer, payload.message, 0, max_payload_length);
+    bool report = radio.write(&payload, sizeof(payload));
+
     radio.flush_tx();                       //  clean out the TX FIFO buffer
     radio.setPayloadSize(sizeof(payload));
     unsigned long start_timer = micros();
