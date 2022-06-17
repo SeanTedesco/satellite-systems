@@ -64,13 +64,13 @@ class RF24(Radio):
         with open(filename, mode='r', encoding='utf8') as file:
             lines = file.read()
             start = 0
-            stop = 31
+            stop = 32
             for i in range(num_payloads):
                 to_send = lines[start:stop]
-                self.logger.debug(f'streaming: {to_send}')
+                self.logger.debug(f'stream [{i}]: {to_send}')
                 self._transmit_raw(to_send)
-                start = stop + 1
-                stop = start + 31
+                start = stop
+                stop = start + 32
                 time.sleep(0.001) # do not comment out else packets will be dropped
         time.sleep(1)
         self._transmit_header('stop_stream')
@@ -125,22 +125,21 @@ class RF24(Radio):
         Return:
             the number of characters transmitted.
         '''
-        data_string = data.strip()
-        data_string_len = len(data_string)
+        data_len = len(data)
 
-        if not data_string: # must not be an empty string
+        if not data: # must not be an empty string
             raise ValueError('passed in an empty string!')
 
-        if data_string_len > 32: # max 32 bytes for a single transmission
-            raise ValueError(f'string is too long, {data_string_len} is greater than 32 characters')
+        if data_len > 32: # max 32 bytes for a single transmission
+            raise ValueError(f'string is too long, {data_len} is greater than 32 characters')
 
         try:
-            self._send_to_arduino(data_string)
+            self._send_to_arduino(data)
         except Exception as e:
-            self.logger.error(f'failed to transmit: {data_string}')
+            self.logger.error(f'failed to transmit: {data}')
             raise e
 
-        return data_string_len
+        return data_len
 
     def _transmit_header(self, data:str, mode:str='T', num_payloads:int=1):
         '''Send a single header message.
@@ -155,23 +154,22 @@ class RF24(Radio):
             the number of characters transmitted.
         '''
 
-        data_string = data.strip()
-        data_string_len = len(data_string)
+        data_len = len(data)
 
-        if not data_string: # must not be an empty string
+        if not data: # must not be an empty string
             raise ValueError('passed in an empty string!')
 
-        if len(data) > 32: # max 32 bytes for a single transmission
-            raise ValueError(f'string is too long, {data_string_len} is greater than 32 characters')
+        if data_len > 32: # max 32 bytes for a single transmission
+            raise ValueError(f'string is too long, {data_len} is greater than 32 characters')
 
-        formatted_data = self._format_header(mode, num_payloads, data_string)
+        formatted_data = self._format_header(mode, num_payloads, data)
         try:
             self._send_to_arduino(formatted_data)
         except Exception as e:
             self.logger.error(f'failed to transmit: {formatted_data}')
             raise e
 
-        return data_string_len
+        return data_len
 
     def _format_header(self, mode:str, num_payloads:int, data:str):
         '''Formart the data to what the arduino expects for transmissions.
