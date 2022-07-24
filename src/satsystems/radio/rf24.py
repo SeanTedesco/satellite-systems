@@ -31,13 +31,13 @@ class RF24(Radio):
             - timeout (optional): duration in which to receive a message.
 
         Return:
-            - if received, the stripped string sent from the arduino over serial.
+            - if received, the string sent from the arduino over serial.
             - if not received, 'xxx'
         '''
         start_time = time.time()
         received = 'xxx'
         while received == 'xxx':
-            received = self._receive_from_arduino().strip()
+            received = self._receive_from_arduino()
             if time.time() > start_time + timeout:
                 self.logger.warning(f'no message received within {timeout} s.')
                 break
@@ -94,7 +94,7 @@ class RF24(Radio):
             elif not (received == 'xxx'):
                 self.logger.info(f'received: {received}')
 
-    def beacon(self, status:str='healthy', keep_listening=False, pulse_count:int=10):
+    def beacon(self, status:str='healthy', keep_listening=False, pulse_count:int=5):
         '''Transmit a beacon message.'''
 
         for i in range(pulse_count):
@@ -102,6 +102,15 @@ class RF24(Radio):
             time.sleep(1)
             self._transmit_header(status)
             time.sleep(1)
+        
+        got_back = 'xxx'
+        if keep_listening:
+            self.monitor('beacon-reception.txt')
+        """got_back = self.receive()
+            if got_back == 'xxx':
+                self.logger.warning(f'failed to receive response after beacon!')
+            self.logger.debug(f'received after beacon: {got_back}')
+        return got_back"""
 
     def _receive_stream(self, filename:str):
         '''
