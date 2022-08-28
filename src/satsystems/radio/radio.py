@@ -1,31 +1,25 @@
-import serial
-from serial.serialutil import SerialException
 from ..common.logger import SatelliteLogger
+from ..common.mcu import MCU
 import argparse
-import sys
 import time
-import base64
 
 class Radio:
     '''Interface class to control a radio.'''
 
     def __init__(self, uid, port, baud=115200, start_marker='<', end_marker='>'):
-        try:
-            self._arduino = serial.Serial(port=port, baudrate=baud, timeout=10, rtscts=True)
-        except SerialException as e:
-            raise e
 
         self._uid = uid
-        self._start_marker = start_marker
-        self._end_marker = end_marker
-        self._data_buffer = ""
-        self._data_started = False
-        self._message_complete = False
         self.logger = SatelliteLogger.get_logger('radio')
 
-        self.__wait_for_msg('ready: serial')
-        self.__set_uid()
-        self.__wait_for_msg('ready: radio')
+        try:
+            self._arduino = MCU(port, baud, start_marker, end_marker)
+        except Exception as e:
+            self.logger.critical(f'failed to open connection to MCU on port: {port}')
+            raise e
+
+        self._wait_for_msg('ready: serial')
+        self._set_uid()
+        self._wait_for_msg('ready: radio')
 
     def transmit(self, data:str):
         '''Send a message.'''
@@ -47,54 +41,22 @@ class Radio:
         '''Constantly listen for a signal.'''
         raise NotImplementedError('Should be implemented by derived class.')
 
-    def __set_uid(self):
+    def _set_uid(self):
         if self._uid not in [0, 1]:
             raise ValueError(f'uid must be 0 or 1, not {self._uid}')
         radio_number = str(self._uid)
-        self._send_to_arduino(radio_number)
+        self._arduino.send_over_serial(radio_number)
 
-    def __wait_for_msg(self, msg:str='ready: serial', timeout:int=10):
+    def _wait_for_msg(self, msg:str='ready: serial', timeout:int=10):
         start_time = time.time()
         incoming = ''
         while incoming.find(msg) == -1:
             if time.time() > start_time + timeout:
                 self.logger.warning(f'no message received, expected: {msg}')
                 break
-            incoming = self._receive_from_arduino()
+            incoming = self._arduino.receive_over_serial()
             if not (incoming == 'xxx'):
                 self.logger.debug(incoming)
-
-    def _receive_from_arduino(self):
-
-        while self._arduino.inWaiting() > 0 and self._message_complete == False:
-            x = self._arduino.read().decode('utf-8')  # decode needed for Python3
-
-            if self._data_started == True:
-                if x != self._end_marker:
-                    self._data_buffer = self._data_buffer + x
-                else:
-                    self._data_started = False
-                    self._message_complete = True
-            elif x == self._start_marker:
-                self._data_buffer = ''
-                self._data_started = True
-
-        if self._message_complete == True:
-            self._message_complete = False
-            return self._data_buffer
-        else:
-            return 'xxx'
-
-    def _send_to_arduino(self, data:str):
-
-        stringWithMarkers = self._start_marker
-        stringWithMarkers += data
-        stringWithMarkers += self._end_marker
-        self._arduino.flush()
-        try:
-            self._arduino.write(stringWithMarkers.encode('utf-8'))
-        except Exception as e:
-            raise e
 
 
 def parse_cmdline():
