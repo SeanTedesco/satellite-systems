@@ -1,6 +1,6 @@
 import serial
 from serial.serialutil import SerialException
-from ..logger.logger import SatelliteLogger
+from ..common.logger import SatelliteLogger
 import argparse
 import sys
 import time

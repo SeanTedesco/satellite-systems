@@ -1,5 +1,5 @@
 from .gps import Gps
-from ..logger.logger import SatelliteLogger
+from ..common.logger import SatelliteLogger
 
 class Grove(Gps):
     
