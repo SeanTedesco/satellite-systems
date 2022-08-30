@@ -20,7 +20,7 @@ setuptools.setup(
     install_requires=[
         'pyserial',
         'argparse',
-    ] + (['picamera', 'RPi.GPIO', 'gpiozero'] if sys.platform == 'linux' else []),
+    ] + (['picamera', 'RPi.GPIO', 'gpiozero', 'smbus'] if sys.platform == 'linux' else []),
     classifiers=[
         'Programming Language :: Python :: 3',
         'Operating System :: OS Independent',
@@ -32,7 +32,7 @@ setuptools.setup(
                 'radio = satsystems.radio.radio:main',
                 'gps = satsystems.gps.gps:main',
                 'camera = satsystems.camera.camera:main',
-                'logger = satsystems.logger.logger:main',
+                'logger = satsystems.common.logger:main',
             ],
     },
 )
