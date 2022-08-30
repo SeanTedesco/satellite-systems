@@ -33,6 +33,7 @@ setuptools.setup(
                 'gps = satsystems.gps.gps:main',
                 'camera = satsystems.camera.camera:main',
                 'logger = satsystems.common.logger:main',
+                'deployer = satsystems.deployer.deployer:main',
             ],
     },
 )
