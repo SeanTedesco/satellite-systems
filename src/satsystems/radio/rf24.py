@@ -37,7 +37,7 @@ class RF24(Radio):
         start_time = time.time()
         received = 'xxx'
         while received == 'xxx':
-            received = self._receive_from_arduino()
+            received = self._arduino.receive_over_serial()
             if time.time() > start_time + timeout:
                 self.logger.warning(f'no message received within {timeout} s.')
                 break
@@ -143,7 +143,7 @@ class RF24(Radio):
             raise ValueError(f'string is too long, {data_len} is greater than 32 characters')
 
         try:
-            self._send_to_arduino(data)
+            self._arduino.send_over_serial(data)
         except Exception as e:
             self.logger.error(f'failed to transmit: {data}')
             raise e
@@ -173,7 +173,7 @@ class RF24(Radio):
 
         formatted_data = self._format_header(mode, num_payloads, data)
         try:
-            self._send_to_arduino(formatted_data)
+            self._arduino.send_over_serial(formatted_data)
         except Exception as e:
             self.logger.error(f'failed to transmit: {formatted_data}')
             raise e
