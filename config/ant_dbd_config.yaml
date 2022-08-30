@@ -1,0 +1,13 @@
+downlink:
+  uid: 0
+  type: dipole
+  delay: 1.0
+  arm pin: 1
+  fire pin: 14
+
+uplink:
+  uid: 1
+  type: dipole
+  delay: 2.0
+  arm pin: 1
+  fire pin: 15
