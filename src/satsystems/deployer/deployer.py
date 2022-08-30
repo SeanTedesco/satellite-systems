@@ -17,7 +17,7 @@ class Deployer:
         self.deployable_list = []
         self.logger = SatelliteLogger.get_logger('deployer')
 
-    def set_configuration(self, filename:str):
+    def set_config(self, filename:str):
         pass
 
     def arm_deployment(self, **kwargs):
@@ -41,7 +41,7 @@ def parse_cmdline():
 
 def do_arm_fire(ant_dbd, options):
 
-    ant_dbd.read_config_file(options.config)
+    ant_dbd.set_config(options.config)
     ant_dbd.arm_deployment()
     ant_dbd.fire_deployment()
 
