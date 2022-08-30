@@ -18,7 +18,7 @@ class MCU:
         self._data_started = False
         self._message_complete = False
 
-        self.bus = smbus.SMBus(1)
+        self._bus = smbus.SMBus(1)
         self.i2c_address = 0x04
         self.reading_i2c = False
 
@@ -57,7 +57,7 @@ class MCU:
     def receive_over_i2c(self):
         self.reading_i2c == True
         while self._message_complete == False and self.reading_i2c == True:
-            x = self.bus.read_byte_data(self.i2c_address, 1)
+            x = self._bus.read_byte_data(self.i2c_address, 1)
 
             if self._data_started == True:
                 if x != self._end_marker:
@@ -82,7 +82,7 @@ class MCU:
         for char in string:
             data = int(ord(char))
             try:
-                self.bus.write_byte(self.address, data)
+                self._bus.write_byte(self.i2c_address, data)
             except Exception as e:
                 raise e
             count += 1
