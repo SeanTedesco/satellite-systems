@@ -1,14 +1,15 @@
 import argparse
 from ..common.logger import SatelliteLogger
+from dataclasses import dataclass
 
+@dataclass
 class Deployable:
     '''A helper class used to describe a single deployable system.'''
+    uid: str
+    arm_pin: int
+    fire_pin: int
+    deployment_delay: float = 1.0
 
-    def __init__(self, uid:int, arm_pin:int, fire_pin:int, deployment_delay:float=1.0):
-        self.uid = uid
-        self.arm_pin = arm_pin
-        self.fire_pin = fire_pin
-        self.deployment_delay = deployment_delay
 
 class Deployer:
     '''Interface class to control deployable systems.'''
