@@ -2,12 +2,14 @@ downlink:
   uid: 0
   type: dipole
   delay: 1.0
-  arm pin: 1
-  fire pin: 14
+  arm pin: 14
+  fire pin: 15
+  detect pin: 16
 
 uplink:
   uid: 1
   type: dipole
-  delay: 2.0
-  arm pin: 1
-  fire pin: 15
+  delay: 1.0
+  arm pin: 14
+  fire pin: 17
+  detect pin: 18
