@@ -14,6 +14,7 @@ class Deployable:
     fire_pin: int
     detect_pin: int
     deployment_delay: float
+    armed: bool = False
 
 
 class Deployer(ABC):
@@ -52,6 +53,7 @@ class Deployer(ABC):
                 configs = yaml.safe_load(stream)
             except yaml.YAMLError as exc:
                 print(exc)
+                raise exc
 
             for config in configs.values():
                 deployable = Deployable(
