@@ -1,4 +1,5 @@
 from .deployer import Deployer, Deployable
+from typing import List
 
 
 class ANT_DBD(Deployer):
@@ -12,14 +13,14 @@ class ANT_DBD(Deployer):
 
         self.logger.critical('arming deployment!')
     
-    def fire_deployment(self, deployables:list[Deployable]):
+    def fire_deployment(self, deployables:List[Deployable]):
         '''Deploy the provided system.'''
 
         self.logger.critical('firing deployment!')
         for deployable in deployables:
             self.logger.debug(f'deploying: {deployable}')
 
-    def detect_deployment(self, deployables:list[Deployable]):
+    def detect_deployment(self, deployables:List[Deployable]):
         '''Detect whether the provided systems truly deployed.'''
 
         self.logger.debug('confirming deployment!')

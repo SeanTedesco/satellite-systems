@@ -3,6 +3,7 @@ from ..common.logger import SatelliteLogger
 from dataclasses import dataclass
 from abc import ABC, abstractmethod
 import yaml
+from typing import List
 
 
 @dataclass
@@ -72,12 +73,12 @@ class Deployer(ABC):
         pass
 
     @abstractmethod
-    def fire_deployment(self, deployables:list[Deployable]):
+    def fire_deployment(self, deployables:List[Deployable]):
         '''Deploy the provided system.'''
         pass
 
     @abstractmethod
-    def detect_deployment(self, deployables:list[Deployable]):
+    def detect_deployment(self, deployables:List[Deployable]):
         '''Detect whether the provided systems truly deployed.'''
         pass
 
@@ -107,7 +108,7 @@ def do_detect(ant_dbd:Deployer, options):
     ant_dbd.detect_deployment(ant_dbd.deployable_list)
 
 def main():
-    from .ant_dbd import ANT_DBD
+    from .ANT_DBD import ANT_DBD
 
     options = parse_cmdline()
     antennta_deployer = ANT_DBD()
