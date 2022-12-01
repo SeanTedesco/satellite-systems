@@ -6,7 +6,7 @@ class MCU:
     '''Generic class to represent a microcontroller.
     '''
 
-    def __init__(self, port, baud=115200, start_marker='<', end_marker='>'):
+    def __init__(self, port='/dev/ttyS0', address=00, baud=115200, start_marker='<', end_marker='>'):
         try:
             self._serial_port = serial.Serial(port=port, baudrate=baud, timeout=10, rtscts=True)
         except SerialException as e:
@@ -19,7 +19,7 @@ class MCU:
         self._message_complete = False
 
         self._bus = smbus.SMBus(1)
-        self.i2c_address = 0x04
+        self.i2c_address = address
         self.reading_i2c = False
 
 
@@ -53,7 +53,7 @@ class MCU:
             self._serial_port.write(string_with_markers.encode('utf-8'))
         except Exception as e:
             raise e
-    
+
     def receive_over_i2c(self):
         self.reading_i2c == True
         while self._message_complete == False and self.reading_i2c == True:
