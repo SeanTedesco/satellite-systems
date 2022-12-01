@@ -35,6 +35,7 @@ setuptools.setup(
                 'camera = satsystems.camera.camera:main',
                 'logger = satsystems.common.logger:main',
                 'deployer = satsystems.deployer.deployer:main',
+                'obc = satsystems.obc.obc:main',
             ],
     },
 )
