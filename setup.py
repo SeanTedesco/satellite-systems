@@ -21,6 +21,7 @@ setuptools.setup(
         'pyserial',
         'argparse',
         'pyyaml',
+        'ttkthemes',
     ] + (['picamera', 'RPi.GPIO', 'gpiozero', 'smbus'] if sys.platform == 'linux' else []),
     classifiers=[
         'Programming Language :: Python :: 3',
@@ -36,6 +37,7 @@ setuptools.setup(
                 'logger = satsystems.common.logger:main',
                 'deployer = satsystems.deployer.deployer:main',
                 'obc = satsystems.obc.obc:main',
+                'grounstation = satsystems.groundstation.groundstation:main'
             ],
     },
 )
