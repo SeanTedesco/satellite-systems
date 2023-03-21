@@ -1,19 +1,38 @@
 import tkinter as tk
+import yaml
 from typing import Callable
+from ..common.logger import SatelliteLogger
 
 class GUI:
     '''Provide basic wrappers for tkinter GUIs
     
     To use the class, first creat an instance of the GUI
-    class, include widgets to your liking with the add-
-    methods, then use the .run() method at the end.
+    class, set the config, include widgets to your liking
+    with the add- methods, then use the .run() method at the end.
     '''
 
     def __init__(self) -> None:
+        self.logger = SatelliteLogger.get_logger('ground_station')
         self.root = tk.Tk()
-        self.widget_height = 5
-        self.widget_width = 20
+        self.widget_height = 0
+        self.widget_width = 0
+        self.paddingx = 0
+        self.paddingy = 0
+        self.font_style = 'Courier'
+        self.large_font_size = 0
+        self.medium_font_size = 0
+        self.small_font_size = 0
 
+    def set_config(self, config_file_path:str='./config/groundstation_config.yaml'):
+        with open(config_file_path, "r") as stream:
+            try:
+                configs = yaml.safe_load(stream)
+            except yaml.YAMLError as exc:
+                print(exc)
+                raise exc
+        gui_styles = configs.get("gui").items()
+        for style, value in gui_styles:
+            setattr(self, style, value)
 
     def run(self):
         self.root.mainloop()

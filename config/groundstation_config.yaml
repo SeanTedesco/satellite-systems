@@ -1,0 +1,13 @@
+gui:
+  font_style: Courier
+  large_font_size: 32
+  medium_font_size: 18
+  small_font_size: 12
+  widget_height: 5
+  widget_width: 20
+  paddingx: 8
+  paddingy: 4
+
+hardware:
+  radio: RF24
+  connection: USB
