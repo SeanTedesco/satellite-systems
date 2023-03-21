@@ -23,14 +23,15 @@ def main():
 
     # create an instance of a GUI
     gui = GUI()
+    gui.set_config()
+    gui.make_fullscreen()
 
     # populate the GUI with widgets 
-    gui.make_fullscreen()
     gui.add_title("SATELLITE SYSTEMS GROUND STATION")
     gui.add_button("Flash LEDs", (1,1), do_led_flash)
     gui.add_button("Take Picture", (2,1), do_take_picture)
     message_entry = gui.add_entry("Message...", (1,2))
-    gui.add_button("Send Message", (2,2), do_send_message, entry=message_entry)
+    gui.add_button("Send Message", (2,2), do_send_message, **{'entry':message_entry})
     gui.add_button("Quit Application",(3,1), gui.root.quit)
     gui.add_text_box((3,2))
 
