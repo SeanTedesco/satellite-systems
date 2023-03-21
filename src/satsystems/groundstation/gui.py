@@ -45,12 +45,16 @@ class GUI:
     def add_title(self, title_text:str):
         self.root.title(title_text)
 
-    def add_frame(self, frame_title:str, row_col:tuple):
+    def add_frame(self, frame_title:str, row_col:tuple, frame=None):
+        if frame is None:
+            frame = self.root
         frame = tk.LabelFrame(self.root, text=frame_title)
         frame.config(font=(self.font_style, self.large_font_size))
         frame.grid(row=row_col[0], column=row_col[1], sticky='NW', padx=self.paddingx, pady=self.paddingy)
     
-    def add_label(self, label_text:str, row_col:tuple):
+    def add_label(self, label_text:str, row_col:tuple, frame=None):
+        if frame is None:
+            frame = self.root
         label = tk.Label(self.root, 
                          text=label_text,
                          width=self.widget_width,
@@ -60,10 +64,12 @@ class GUI:
         label.grid(row=row_col[0], column=row_col[1], sticky='W', padx=self.paddingx, pady=self.paddingy)
         return label
     
-    def add_button(self, button_text:str, row_col:tuple, button_function:Callable, **kwargs):
+    def add_button(self, button_text:str, row_col:tuple, button_function:Callable, function_kwargs={}, frame=None):
+        if frame is None:
+            frame = self.root
         button = tk.Button(self.root, 
                            text=button_text, 
-                           command=lambda: button_function(**kwargs),
+                           command=lambda: button_function(**function_kwargs),
                          width=self.widget_width,
                          height=self.widget_height
                         )
@@ -71,15 +77,19 @@ class GUI:
         button.grid(row=row_col[0], column=row_col[1], sticky='W', padx=self.paddingx, pady=self.paddingy)
         return button
 
-    def add_entry(self, default_text:str, row_col:tuple):
+    def add_entry(self, default_text:str, row_col:tuple, frame=None):
+        if frame is None:
+            frame = self.root
         entry = tk.Entry(self.root, width=20)
         entry.insert(0, default_text)
         entry.config(font=(self.font_style, self.medium_font_size))
         entry.grid(row=row_col[0], column=row_col[1], sticky='W', padx=self.paddingx, pady=self.paddingy)
         return entry
     
-    def add_text_box(self, row_col:tuple):
-        text = tk.Text(self.root,
+    def add_text_box(self, row_col:tuple, frame=None):
+        if frame is None:
+            frame = self.root
+        text = tk.Text(frame,
                         width=self.widget_width,
                         height=self.widget_height)
         text.config(font=(self.font_style, self.medium_font_size))
