@@ -44,6 +44,11 @@ class GUI:
 
     def add_title(self, title_text:str):
         self.root.title(title_text)
+
+    def add_frame(self, frame_title:str, row_col:tuple):
+        frame = tk.LabelFrame(self.root, text=frame_title)
+        frame.config(font=(self.font_style, self.large_font_size))
+        frame.grid(row=row_col[0], column=row_col[1], sticky='NW', padx=self.paddingx, pady=self.paddingy)
     
     def add_label(self, label_text:str, row_col:tuple):
         label = tk.Label(self.root, 
@@ -51,7 +56,8 @@ class GUI:
                          width=self.widget_width,
                          height=self.widget_height
                         )
-        label.grid(row=row_col[0], column=row_col[1], sticky='W', pady=2)
+        label.config(font=(self.font_style, self.large_font_size))
+        label.grid(row=row_col[0], column=row_col[1], sticky='W', padx=self.paddingx, pady=self.paddingy)
         return label
     
     def add_button(self, button_text:str, row_col:tuple, button_function:Callable, **kwargs):
@@ -61,18 +67,21 @@ class GUI:
                          width=self.widget_width,
                          height=self.widget_height
                         )
-        button.grid(row=row_col[0], column=row_col[1], sticky='W', pady=2)
+        button.config(font=(self.font_style, self.medium_font_size))
+        button.grid(row=row_col[0], column=row_col[1], sticky='W', padx=self.paddingx, pady=self.paddingy)
         return button
 
     def add_entry(self, default_text:str, row_col:tuple):
         entry = tk.Entry(self.root, width=20)
         entry.insert(0, default_text)
-        entry.grid(row=row_col[0], column=row_col[1], sticky='W', pady=2)
+        entry.config(font=(self.font_style, self.medium_font_size))
+        entry.grid(row=row_col[0], column=row_col[1], sticky='W', padx=self.paddingx, pady=self.paddingy)
         return entry
     
     def add_text_box(self, row_col:tuple):
         text = tk.Text(self.root,
                         width=self.widget_width,
                         height=self.widget_height)
-        text.grid(row=row_col[0], column=row_col[1], sticky='W', pady=2)
+        text.config(font=(self.font_style, self.medium_font_size))
+        text.grid(row=row_col[0], column=row_col[1], sticky='W', padx=self.paddingx, pady=self.paddingy)
         return text
