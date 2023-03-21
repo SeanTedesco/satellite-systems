@@ -37,7 +37,7 @@ setuptools.setup(
                 'logger = satsystems.common.logger:main',
                 'deployer = satsystems.deployer.deployer:main',
                 'obc = satsystems.obc.obc:main',
-                'grounstation = satsystems.groundstation.groundstation:main'
+                'groundstation = satsystems.groundstation.groundstation:main'
             ],
     },
 )

@@ -1,6 +1,9 @@
-import smbus
 import serial
 from serial.serialutil import SerialException
+try:
+    import smbus
+except:
+    print("could not import smbus")
 
 class MCU:
     '''Generic class to represent a microcontroller.
