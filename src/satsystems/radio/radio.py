@@ -12,7 +12,7 @@ class Radio:
         self.logger = SatelliteLogger.get_logger('radio')
 
         try:
-            self._arduino = MCU(port, baud, start_marker, end_marker)
+            self._arduino = MCU(port, 0, baud, start_marker, end_marker)
         except Exception as e:
             self.logger.critical(f'failed to open connection to MCU on port: {port}')
             raise e
