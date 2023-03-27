@@ -9,7 +9,7 @@ class MCU:
     '''Generic class to represent a microcontroller.
     '''
 
-    def __init__(self, port='/dev/ttyS0', address=00, baud=115200, start_marker='<', end_marker='>'):
+    def __init__(self, port='/dev/ttyAMA0', address=00, baud=115200, start_marker='<', end_marker='>'):
         try:
             self._serial_port = serial.Serial(port=port, baudrate=baud, timeout=10, rtscts=True)
         except SerialException as e:
@@ -21,10 +21,12 @@ class MCU:
         self._data_started = False
         self._message_complete = False
 
-        self._bus = smbus.SMBus(1)
+        try:
+            self._bus = smbus.SMBus(1)
+        except:
+            print('could not connect to satellite i2c bus')
         self.i2c_address = address
         self.reading_i2c = False
-
 
     def receive_over_serial(self):
         while self._serial_port.inWaiting() > 0 and self._message_complete == False:
