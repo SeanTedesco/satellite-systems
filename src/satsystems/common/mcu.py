@@ -1,7 +1,6 @@
 import serial
-from serial.serialutil import SerialException
 try:
-    import smbus
+    import smbus2
 except:
     print("could not import smbus")
 
@@ -11,10 +10,10 @@ class MCU:
 
     def __init__(self, port='/dev/ttyAMA0', address=00, baud=115200, start_marker='<', end_marker='>'):
         try:
-            self._serial_port = serial.Serial(port=port, baudrate=baud, timeout=10, rtscts=True)
+            self._serial_port = serial.Serial(port=port, baudrate=115200, timeout=10, rtscts=True)
+            self._serial_port.reset_input_buffer()
         except SerialException as e:
-            raise e
-        self._serial_port.reset_input_buffer()
+            print(f"could not open port: {port}")
         self._start_marker = start_marker
         self._end_marker = end_marker
         self._data_buffer = ""
@@ -23,8 +22,8 @@ class MCU:
 
         try:
             self._bus = smbus.SMBus(1)
-        except:
-            print('could not connect to satellite i2c bus')
+        except Exception as e:
+            print("could not connect to i2c bus...")
         self.i2c_address = address
         self.reading_i2c = False
 
