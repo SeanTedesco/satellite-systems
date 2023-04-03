@@ -22,7 +22,7 @@ setuptools.setup(
         'argparse',
         'pyyaml',
         'ttkthemes',
-    ] + (['picamera', 'RPi.GPIO', 'gpiozero', 'smbus'] if sys.platform == 'linux' else []),
+    ] + (['picamera', 'RPi.GPIO', 'gpiozero', 'smbus2'] if sys.platform == 'linux' else []),
     classifiers=[
         'Programming Language :: Python :: 3',
         'Operating System :: OS Independent',
